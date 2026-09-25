@@ -2,7 +2,7 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase-server";
 import { getUserPosts } from "@/lib/posts";
-import SignOutButton from "@/app/components/SignOutButton";
+import ProfileMenu from "@/app/components/ProfileMenu";
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -61,9 +61,9 @@ export default async function ProfilePage() {
           <p className="text-sm text-[var(--ink-soft)] italic">
             No bio yet.
           </p>
-
-          <SignOutButton />
         </div>
+
+        <ProfileMenu />
       </div>
 
       <div className="mt-10 flex items-center justify-center gap-10 border-t border-[var(--line)] sm:justify-start">
