@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase-browser";
 
 const SPLASH_DURATION_MS = 1400;
 
@@ -9,11 +10,22 @@ export default function SplashPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      router.replace("/login");
+    let cancelled = false;
+    const supabase = createClient();
+    const sessionPromise = supabase.auth.getSession();
+
+    const timer = setTimeout(async () => {
+      const {
+        data: { session },
+      } = await sessionPromise;
+      if (cancelled) return;
+      router.replace(session ? "/feed" : "/login");
     }, SPLASH_DURATION_MS);
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [router]);
 
   return (
