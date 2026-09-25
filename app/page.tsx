@@ -1,27 +1,26 @@
-import PostCard from "@/app/components/PostCard";
-import { getFeedPosts } from "@/lib/posts";
+"use client";
 
-export default async function Home() {
-  const posts = await getFeedPosts();
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+
+const SPLASH_DURATION_MS = 1400;
+
+export default function SplashPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      router.replace("/login");
+    }, SPLASH_DURATION_MS);
+
+    return () => clearTimeout(timer);
+  }, [router]);
 
   return (
-    <main className="mx-auto w-full max-w-lg flex-1 sm:max-w-xl sm:px-4 sm:py-8">
-      {posts.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 px-6 py-28 text-center">
-          <span className="font-serif text-2xl italic text-[var(--ink)]">
-            Nothing here yet
-          </span>
-          <p className="max-w-xs text-sm text-[var(--ink-soft)]">
-            When photographs are shared, they&apos;ll appear here.
-          </p>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-0 sm:gap-6">
-          {posts.map((post, index) => (
-            <PostCard key={post.id} post={post} index={index} />
-          ))}
-        </div>
-      )}
-    </main>
+    <div className="flex flex-1 items-center justify-center">
+      <span className="animate-[splash-fade_1400ms_ease-in-out] font-serif text-4xl italic tracking-tight text-[var(--ink)] sm:text-5xl motion-reduce:animate-none">
+        FrontierGram
+      </span>
+    </div>
   );
 }
