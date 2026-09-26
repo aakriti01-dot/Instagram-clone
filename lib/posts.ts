@@ -1,7 +1,9 @@
 import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase-browser";
 
 export type FeedPost = {
   id: number;
+  userId: string;
   username: string;
   caption: string | null;
   createdAt: string | null;
@@ -13,6 +15,7 @@ export type FeedPost = {
 
 type PostRow = {
   id: number;
+  user_id: string;
   image_url: string;
   caption: string | null;
   created_at: string | null;
@@ -40,6 +43,7 @@ type WithLikes = BasePost & {
 function mapRow(row: PostRow): BasePost {
   return {
     id: row.id,
+    userId: row.user_id,
     username: row.profiles?.username ?? "unknown",
     caption: row.caption,
     createdAt: row.created_at,
@@ -118,7 +122,7 @@ async function attachCommentCounts(posts: WithLikes[]): Promise<FeedPost[]> {
 export async function getFeedPosts(viewerId?: string): Promise<FeedPost[]> {
   const { data, error } = await supabase
     .from("posts")
-    .select("id, image_url, caption, created_at, profiles ( username )")
+    .select("id, user_id, image_url, caption, created_at, profiles ( username )")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -136,7 +140,7 @@ export async function getUserPosts(
 ): Promise<FeedPost[]> {
   const { data, error } = await supabase
     .from("posts")
-    .select("id, image_url, caption, created_at, profiles ( username )")
+    .select("id, user_id, image_url, caption, created_at, profiles ( username )")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
@@ -147,4 +151,50 @@ export async function getUserPosts(
   const rows = (data ?? []) as unknown as PostRow[];
   const withLikes = await attachLikeData(rows.map(mapRow), viewerId);
   return attachCommentCounts(withLikes);
+}
+
+export type DeletePostResult = {
+  storageCleanupFailed: boolean;
+};
+
+const PUBLIC_POST_IMAGE_MARKER = "/storage/v1/object/public/post-images/";
+
+export async function deletePost(
+  postId: number,
+  userId: string,
+  imageUrl: string
+): Promise<DeletePostResult> {
+  const browserClient = createClient();
+  let storageCleanupFailed = false;
+
+  const markerIndex = imageUrl.indexOf(PUBLIC_POST_IMAGE_MARKER);
+  const path =
+    markerIndex === -1
+      ? null
+      : imageUrl.slice(markerIndex + PUBLIC_POST_IMAGE_MARKER.length);
+
+  if (path) {
+    const { error: storageError } = await browserClient.storage
+      .from("post-images")
+      .remove([path]);
+
+    if (storageError) {
+      storageCleanupFailed = true;
+    }
+  } else {
+    // Doesn't match the expected convention — nothing safe to derive/delete.
+    storageCleanupFailed = true;
+  }
+
+  const { error } = await browserClient
+    .from("posts")
+    .delete()
+    .eq("id", postId)
+    .eq("user_id", userId);
+
+  if (error) {
+    throw error;
+  }
+
+  return { storageCleanupFailed };
 }

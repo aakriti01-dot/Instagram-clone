@@ -1,12 +1,18 @@
 import Image from "next/image";
-import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase-server";
+import { getProfileByUsername } from "@/lib/profiles";
 import { getUserPosts } from "@/lib/posts";
-import { getFollowCounts } from "@/lib/follows";
-import ProfileMenu from "@/app/components/ProfileMenu";
+import { getFollowCounts, isFollowing } from "@/lib/follows";
+import FollowButton from "@/app/components/FollowButton";
 
-export default async function ProfilePage() {
+export default async function UserProfilePage({
+  params,
+}: {
+  params: Promise<{ username: string }>;
+}) {
+  const { username } = await params;
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -16,20 +22,26 @@ export default async function ProfilePage() {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("username, display_name, bio, avatar_url")
-    .eq("id", user.id)
-    .single();
+  const profile = await getProfileByUsername(username);
 
-  const username = profile?.username ?? "Unknown";
-  const displayName = profile?.display_name ?? null;
-  const bio = profile?.bio ?? null;
-  const avatarUrl = profile?.avatar_url ?? null;
-  const initial = (displayName || username).charAt(0).toUpperCase();
-  const [posts, followCounts] = await Promise.all([
-    getUserPosts(user.id, user.id),
-    getFollowCounts(user.id),
+  if (!profile) {
+    notFound();
+  }
+
+  // /profile/[username] is only for viewing someone else's profile — the
+  // canonical URL for your own profile is /profile.
+  if (profile.id === user.id) {
+    redirect("/profile");
+  }
+
+  const displayName = profile.displayName;
+  const bio = profile.bio;
+  const avatarUrl = profile.avatarUrl;
+  const initial = (displayName || profile.username).charAt(0).toUpperCase();
+  const [posts, followCounts, alreadyFollowing] = await Promise.all([
+    getUserPosts(profile.id, user.id),
+    getFollowCounts(profile.id),
+    isFollowing(user.id, profile.id),
   ]);
 
   return (
@@ -39,7 +51,7 @@ export default async function ProfilePage() {
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={avatarUrl}
-            alt={`${username}'s profile picture`}
+            alt={`${profile.username}'s profile picture`}
             className="h-20 w-20 shrink-0 rounded-full object-cover sm:h-32 sm:w-32"
           />
         ) : (
@@ -54,11 +66,13 @@ export default async function ProfilePage() {
               <p className="font-serif text-xl italic text-[var(--ink)] sm:text-2xl">
                 {displayName}
               </p>
-              <p className="text-sm text-[var(--ink-soft)]">@{username}</p>
+              <p className="text-sm text-[var(--ink-soft)]">
+                @{profile.username}
+              </p>
             </div>
           ) : (
             <p className="font-serif text-xl italic text-[var(--ink)] sm:text-2xl">
-              {username}
+              {profile.username}
             </p>
           )}
 
@@ -81,12 +95,11 @@ export default async function ProfilePage() {
             </p>
           </div>
 
-          <Link
-            href="/profile/edit"
-            className="rounded-full border border-[var(--line)] px-5 py-2 text-sm font-medium text-[var(--ink)] transition-colors hover:border-[var(--blush)]"
-          >
-            Edit profile
-          </Link>
+          <FollowButton
+            viewerId={user.id}
+            targetUserId={profile.id}
+            initialFollowing={alreadyFollowing}
+          />
 
           {bio ? (
             <p className="text-sm text-[var(--ink-soft)]">{bio}</p>
@@ -96,8 +109,6 @@ export default async function ProfilePage() {
             </p>
           )}
         </div>
-
-        <ProfileMenu />
       </div>
 
       <div className="mt-10 flex items-center justify-center gap-10 border-t border-[var(--line)] sm:justify-start">
@@ -115,7 +126,7 @@ export default async function ProfilePage() {
             No posts yet
           </p>
           <p className="max-w-xs text-sm text-[var(--ink-soft)]">
-            When you share photographs, they&apos;ll appear here.
+            When they share photographs, they&apos;ll appear here.
           </p>
         </div>
       ) : (
@@ -127,7 +138,7 @@ export default async function ProfilePage() {
             >
               <Image
                 src={post.imageUrl}
-                alt={`Photo shared by ${username}`}
+                alt={`Photo shared by ${profile.username}`}
                 fill
                 className="object-cover"
                 sizes="(min-width: 640px) 33vw, 33vw"

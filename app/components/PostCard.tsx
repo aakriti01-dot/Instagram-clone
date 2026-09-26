@@ -2,6 +2,7 @@ import type { FeedPost } from "@/lib/posts";
 import { KebabIcon, ShareIcon } from "@/app/components/icons";
 import LikeButton from "@/app/components/LikeButton";
 import CommentButton from "@/app/components/CommentButton";
+import PostMenu from "@/app/components/PostMenu";
 
 function initials(username: string) {
   return username.charAt(0).toUpperCase();
@@ -48,14 +49,22 @@ export default function PostCard({
             </time>
           )}
         </div>
-        <button
-          type="button"
-          aria-label="More options"
-          title="More options"
-          className="text-[var(--ink-soft)]"
-        >
-          <KebabIcon className="h-[18px] w-[18px]" />
-        </button>
+        {viewerId === post.userId ? (
+          <PostMenu
+            postId={post.id}
+            userId={post.userId}
+            imageUrl={post.imageUrl}
+          />
+        ) : (
+          <button
+            type="button"
+            aria-label="More options"
+            title="More options"
+            className="text-[var(--ink-soft)]"
+          >
+            <KebabIcon className="h-[18px] w-[18px]" />
+          </button>
+        )}
       </div>
 
       <div className="bg-[var(--cream)]">
