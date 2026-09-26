@@ -1,10 +1,6 @@
 import type { FeedPost } from "@/lib/posts";
-import {
-  CommentIcon,
-  HeartIcon,
-  KebabIcon,
-  ShareIcon,
-} from "@/app/components/icons";
+import { CommentIcon, KebabIcon, ShareIcon } from "@/app/components/icons";
+import LikeButton from "@/app/components/LikeButton";
 
 function initials(username: string) {
   return username.charAt(0).toUpperCase();
@@ -21,9 +17,11 @@ function formatDate(iso: string | null) {
 export default function PostCard({
   post,
   index,
+  viewerId,
 }: {
   post: FeedPost;
   index: number;
+  viewerId: string | null;
 }) {
   const accentTint = index % 2 === 0 ? "var(--blush-tint)" : "var(--powder-tint)";
   const date = formatDate(post.createdAt);
@@ -70,14 +68,12 @@ export default function PostCard({
       </div>
 
       <div className="flex items-center gap-4 px-4 pt-3">
-        <button
-          type="button"
-          aria-label="Like"
-          title="Like"
-          className="text-[var(--ink)] transition-colors hover:text-[var(--blush)]"
-        >
-          <HeartIcon className="h-[22px] w-[22px]" />
-        </button>
+        <LikeButton
+          postId={post.id}
+          viewerId={viewerId}
+          initialLiked={post.likedByCurrentUser}
+          initialCount={post.likeCount}
+        />
         <button
           type="button"
           aria-label="Comment"
@@ -98,7 +94,7 @@ export default function PostCard({
 
       <div className="px-4 pt-2 pb-4">
         {post.caption && (
-          <p className="text-sm leading-relaxed text-[var(--ink)]">
+          <p className="text-sm leading-relaxed break-words text-[var(--ink)]">
             <span className="mr-1.5 font-medium">{post.username}</span>
             {post.caption}
           </p>
