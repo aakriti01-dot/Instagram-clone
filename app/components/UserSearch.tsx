@@ -65,15 +65,15 @@ export default function UserSearch({ viewerId }: { viewerId: string | null }) {
 
   return (
     <>
-      <div className="relative mb-6">
-        <SearchIcon className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-[var(--ink-soft)]" />
+      <div className="relative mb-8">
+        <SearchIcon className="pointer-events-none absolute top-1/2 left-5 h-[18px] w-[18px] -translate-y-1/2 text-[var(--ink-soft)]" />
         <input
           type="text"
           value={query}
           onChange={(event) => handleQueryChange(event.target.value)}
           placeholder="Search"
           autoFocus
-          className="w-full rounded-xl border border-[var(--line)] bg-[var(--paper)] py-2.5 pr-10 pl-10 text-sm text-[var(--ink)] outline-none focus:border-[var(--blush)]"
+          className="w-full rounded-full border border-[var(--line)] bg-[var(--paper)] py-4 pr-12 pl-12 text-base text-[var(--ink)] outline-none focus:border-[var(--blush)]"
         />
         {query && (
           <button
@@ -81,7 +81,7 @@ export default function UserSearch({ viewerId }: { viewerId: string | null }) {
             onClick={() => handleQueryChange("")}
             aria-label="Clear search"
             title="Clear search"
-            className="absolute top-1/2 right-3 -translate-y-1/2 text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)]"
+            className="absolute top-1/2 right-4 -translate-y-1/2 text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)]"
           >
             <CloseIcon className="h-4 w-4" />
           </button>
@@ -147,7 +147,7 @@ export default function UserSearch({ viewerId }: { viewerId: string | null }) {
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-[var(--ink)]">
-                    {result.username}
+                    @{result.username}
                   </p>
                   {result.displayName && (
                     <p className="truncate text-xs text-[var(--ink-soft)]">

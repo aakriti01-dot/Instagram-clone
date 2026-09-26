@@ -8,7 +8,7 @@ export default async function SearchPage() {
   } = await supabase.auth.getUser();
 
   return (
-    <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6 sm:max-w-xl sm:px-6 sm:py-8">
+    <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6 sm:max-w-2xl sm:px-6 sm:py-10">
       <UserSearch viewerId={user?.id ?? null} />
     </main>
   );
