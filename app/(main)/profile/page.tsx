@@ -22,7 +22,7 @@ export default async function ProfilePage() {
 
   const username = profile?.username ?? "Unknown";
   const initial = username.charAt(0).toUpperCase();
-  const posts = await getUserPosts(user.id);
+  const posts = await getUserPosts(user.id, user.id);
 
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-6 py-10 sm:max-w-3xl sm:px-8 sm:py-14">

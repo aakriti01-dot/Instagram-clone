@@ -11,9 +11,17 @@ const base = {
   strokeLinejoin: "round" as const,
 };
 
-export function HeartIcon({ className }: IconProps) {
+export function HeartIcon({
+  className,
+  filled = false,
+}: IconProps & { filled?: boolean }) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg
+      {...base}
+      fill={filled ? "currentColor" : "none"}
+      className={className}
+      aria-hidden="true"
+    >
       <path d="M12 20.2s-7.5-4.6-9.6-9.2C1 8 2.3 4.9 5.4 4.1c2-.5 3.9.3 5 2 1.1-1.7 3-2.5 5-2 3.1.8 4.4 3.9 3 6.9-2.1 4.6-9.6 9.2-9.6 9.2Z" />
     </svg>
   );
@@ -95,6 +103,14 @@ export function MenuIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
       <path d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
+  );
+}
+
+export function CloseIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <path d="M6 6l12 12M18 6L6 18" />
     </svg>
   );
 }

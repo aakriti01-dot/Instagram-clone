@@ -1,12 +1,29 @@
 import PostCard from "@/app/components/PostCard";
 import { getFeedPosts } from "@/lib/posts";
+import { createClient } from "@/lib/supabase-server";
 
 export default async function Home() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const viewerId = user?.id ?? null;
+
+  let viewerUsername: string | null = null;
+  if (viewerId) {
+    const { data: viewerProfile } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", viewerId)
+      .single();
+    viewerUsername = viewerProfile?.username ?? null;
+  }
+
   let posts: Awaited<ReturnType<typeof getFeedPosts>> = [];
   let loadError = false;
 
   try {
-    posts = await getFeedPosts();
+    posts = await getFeedPosts(viewerId ?? undefined);
   } catch {
     loadError = true;
   }
@@ -35,7 +52,13 @@ export default async function Home() {
       ) : (
         <div className="flex flex-col gap-0 sm:gap-6">
           {posts.map((post, index) => (
-            <PostCard key={post.id} post={post} index={index} />
+            <PostCard
+              key={post.id}
+              post={post}
+              index={index}
+              viewerId={viewerId}
+              viewerUsername={viewerUsername}
+            />
           ))}
         </div>
       )}

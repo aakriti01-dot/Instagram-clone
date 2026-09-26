@@ -1,6 +1,7 @@
 import type { FeedPost } from "@/lib/posts";
-import { CommentIcon, KebabIcon, ShareIcon } from "@/app/components/icons";
+import { KebabIcon, ShareIcon } from "@/app/components/icons";
 import LikeButton from "@/app/components/LikeButton";
+import CommentButton from "@/app/components/CommentButton";
 
 function initials(username: string) {
   return username.charAt(0).toUpperCase();
@@ -18,10 +19,12 @@ export default function PostCard({
   post,
   index,
   viewerId,
+  viewerUsername,
 }: {
   post: FeedPost;
   index: number;
   viewerId: string | null;
+  viewerUsername: string | null;
 }) {
   const accentTint = index % 2 === 0 ? "var(--blush-tint)" : "var(--powder-tint)";
   const date = formatDate(post.createdAt);
@@ -74,14 +77,12 @@ export default function PostCard({
           initialLiked={post.likedByCurrentUser}
           initialCount={post.likeCount}
         />
-        <button
-          type="button"
-          aria-label="Comment"
-          title="Comment"
-          className="text-[var(--ink)] transition-colors hover:text-[var(--powder)]"
-        >
-          <CommentIcon className="h-[22px] w-[22px]" />
-        </button>
+        <CommentButton
+          postId={post.id}
+          viewerId={viewerId}
+          viewerUsername={viewerUsername}
+          initialCount={post.commentCount}
+        />
         <button
           type="button"
           aria-label="Share"
