@@ -2,11 +2,28 @@ import PostCard from "@/app/components/PostCard";
 import { getFeedPosts } from "@/lib/posts";
 
 export default async function Home() {
-  const posts = await getFeedPosts();
+  let posts: Awaited<ReturnType<typeof getFeedPosts>> = [];
+  let loadError = false;
+
+  try {
+    posts = await getFeedPosts();
+  } catch {
+    loadError = true;
+  }
 
   return (
     <main className="mx-auto w-full max-w-lg flex-1 sm:max-w-xl sm:px-4 sm:py-8">
-      {posts.length === 0 ? (
+      {loadError ? (
+        <div className="flex flex-col items-center gap-3 px-6 py-28 text-center">
+          <span className="font-serif text-2xl italic text-[var(--ink)]">
+            Something went wrong
+          </span>
+          <p className="max-w-xs text-sm text-[var(--ink-soft)]">
+            We couldn&apos;t load the feed right now. Please try again
+            shortly.
+          </p>
+        </div>
+      ) : posts.length === 0 ? (
         <div className="flex flex-col items-center gap-3 px-6 py-28 text-center">
           <span className="font-serif text-2xl italic text-[var(--ink)]">
             Nothing here yet

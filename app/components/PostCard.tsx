@@ -1,7 +1,5 @@
-import Image from "next/image";
 import type { FeedPost } from "@/lib/posts";
 import {
-  BookmarkIcon,
   CommentIcon,
   HeartIcon,
   KebabIcon,
@@ -39,26 +37,35 @@ export default function PostCard({
         >
           {initials(post.username)}
         </span>
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--ink)]">
-          {post.username}
-        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-[var(--ink)]">
+            {post.username}
+          </p>
+          {date && (
+            <time className="block text-xs text-[var(--ink-soft)]">
+              {date}
+            </time>
+          )}
+        </div>
         <button
           type="button"
           aria-label="More options"
+          title="More options"
           className="text-[var(--ink-soft)]"
         >
           <KebabIcon className="h-[18px] w-[18px]" />
         </button>
       </div>
 
-      <div className="relative aspect-[4/5] w-full overflow-hidden bg-[var(--cream)]">
-        <Image
+      <div className="bg-[var(--cream)]">
+        {/* Real, unknown-dimension uploads: a plain img preserves natural
+            aspect ratio without the distortion risk of a fixed box. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
           src={post.imageUrl}
           alt={`Photo shared by ${post.username}`}
-          fill
-          className="object-cover"
-          sizes="(min-width: 640px) 560px, 100vw"
-          priority={index === 0}
+          loading={index === 0 ? "eager" : "lazy"}
+          className="h-auto w-full"
         />
       </div>
 
@@ -66,6 +73,7 @@ export default function PostCard({
         <button
           type="button"
           aria-label="Like"
+          title="Like"
           className="text-[var(--ink)] transition-colors hover:text-[var(--blush)]"
         >
           <HeartIcon className="h-[22px] w-[22px]" />
@@ -73,6 +81,7 @@ export default function PostCard({
         <button
           type="button"
           aria-label="Comment"
+          title="Comment"
           className="text-[var(--ink)] transition-colors hover:text-[var(--powder)]"
         >
           <CommentIcon className="h-[22px] w-[22px]" />
@@ -80,31 +89,19 @@ export default function PostCard({
         <button
           type="button"
           aria-label="Share"
+          title="Share"
           className="text-[var(--ink)] transition-colors hover:text-[var(--blush)]"
         >
           <ShareIcon className="h-[22px] w-[22px]" />
         </button>
-        <button
-          type="button"
-          aria-label="Save"
-          className="ml-auto text-[var(--ink)] transition-colors hover:text-[var(--powder)]"
-        >
-          <BookmarkIcon className="h-[22px] w-[22px]" />
-        </button>
       </div>
 
-      <div className="flex flex-col gap-2 px-4 pt-2 pb-4">
+      <div className="px-4 pt-2 pb-4">
         {post.caption && (
           <p className="text-sm leading-relaxed text-[var(--ink)]">
             <span className="mr-1.5 font-medium">{post.username}</span>
             {post.caption}
           </p>
-        )}
-        <p className="text-sm text-[var(--ink-soft)]">Add a comment…</p>
-        {date && (
-          <time className="text-[11px] tracking-wide text-[var(--ink-soft)] uppercase">
-            {date}
-          </time>
         )}
       </div>
     </article>
