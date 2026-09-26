@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-browser";
@@ -39,16 +40,40 @@ export default function LoginPage() {
         className="relative hidden flex-1 items-center justify-center overflow-hidden bg-[var(--blush-tint)] px-12 lg:flex"
         aria-hidden="true"
       >
-        <div className="absolute inset-0">
-          <div className="absolute top-[16%] left-[14%] h-40 w-32 rotate-[-6deg] rounded-2xl border border-[var(--line)] bg-[var(--paper)]" />
-          <div className="absolute top-[8%] left-[40%] h-48 w-36 rotate-[4deg] rounded-2xl border border-[var(--line)] bg-[var(--powder-tint)]" />
-          <div className="absolute top-[46%] left-[30%] h-44 w-40 rotate-[-3deg] rounded-2xl border border-[var(--line)] bg-[var(--cream)]" />
-          <div className="absolute top-[20%] right-[12%] h-36 w-28 rotate-[8deg] rounded-2xl border border-[var(--line)] bg-[var(--paper)]" />
-          <div className="absolute right-[8%] bottom-[14%] h-40 w-32 rotate-[-5deg] rounded-2xl border border-[var(--line)] bg-[var(--powder-tint)]" />
+        <div className="flex w-full max-w-md flex-col items-center gap-10">
+          <div className="relative h-[420px] w-full">
+            <div className="absolute top-0 left-1/2 h-72 w-56 -translate-x-[68%] -rotate-3 overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--paper)]">
+              <Image
+                src="/assets/login1.png"
+                alt=""
+                fill
+                className="object-cover"
+                sizes="224px"
+              />
+            </div>
+            <div className="absolute top-4 right-0 h-40 w-32 rotate-6 overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--paper)]">
+              <Image
+                src="/assets/login2.png"
+                alt=""
+                fill
+                className="object-cover"
+                sizes="128px"
+              />
+            </div>
+            <div className="absolute bottom-0 left-0 h-36 w-44 -rotate-6 overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--paper)]">
+              <Image
+                src="/assets/login3.png"
+                alt=""
+                fill
+                className="object-cover"
+                sizes="176px"
+              />
+            </div>
+          </div>
+          <p className="max-w-xs text-center font-serif text-3xl leading-snug text-[var(--ink)] italic">
+            Photos that matter, shared with intention.
+          </p>
         </div>
-        <p className="relative z-10 max-w-xs text-center font-serif text-3xl leading-snug text-[var(--ink)] italic">
-          Photos that matter, shared with intention.
-        </p>
       </div>
 
       <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-6 py-16">
