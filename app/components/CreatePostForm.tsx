@@ -3,6 +3,7 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-browser";
+import { generateId } from "@/lib/uuid";
 import { PlusSquareIcon } from "@/app/components/icons";
 
 export default function CreatePostForm({ userId }: { userId: string }) {
@@ -42,7 +43,7 @@ export default function CreatePostForm({ userId }: { userId: string }) {
       const extension = file.name.includes(".")
         ? file.name.split(".").pop()
         : "jpg";
-      const path = `${userId}/${crypto.randomUUID()}.${extension}`;
+      const path = `${userId}/${generateId()}.${extension}`;
 
       const { error: uploadError } = await supabase.storage
         .from("post-images")

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase-browser";
+import { generateId } from "@/lib/uuid";
 
 export type ProfileUpdate = {
   username: string;
@@ -12,7 +13,7 @@ export type ProfileUpdate = {
 export async function uploadAvatar(userId: string, file: File): Promise<string> {
   const supabase = createClient();
   const extension = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
-  const path = `${userId}/${crypto.randomUUID()}.${extension}`;
+  const path = `${userId}/${generateId()}.${extension}`;
 
   const { error: uploadError } = await supabase.storage
     .from("profile-pictures")
