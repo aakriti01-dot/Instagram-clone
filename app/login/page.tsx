@@ -44,7 +44,7 @@ export default function LoginPage() {
           <div className="relative h-[420px] w-full">
             <div className="absolute top-0 left-1/2 h-72 w-56 -translate-x-[68%] -rotate-3 overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--paper)]">
               <Image
-                src="/assets/login1.png"
+                src="/assets/login1.jpg"
                 alt=""
                 fill
                 className="object-cover"
@@ -53,7 +53,7 @@ export default function LoginPage() {
             </div>
             <div className="absolute top-4 right-0 h-40 w-32 rotate-6 overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--paper)]">
               <Image
-                src="/assets/login2.png"
+                src="/assets/login2.jpg"
                 alt=""
                 fill
                 className="object-cover"
@@ -62,7 +62,7 @@ export default function LoginPage() {
             </div>
             <div className="absolute bottom-0 left-0 h-36 w-44 -rotate-6 overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--paper)]">
               <Image
-                src="/assets/login3.png"
+                src="/assets/login3.jpg"
                 alt=""
                 fill
                 className="object-cover"
@@ -76,12 +76,12 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-6 py-16">
-        <div className="mb-8 text-center">
-          <span className="font-serif text-2xl italic tracking-tight text-[var(--ink)]">
+      <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-16 lg:px-16">
+        <div className="mb-10 text-center">
+          <span className="font-serif text-3xl italic tracking-tight text-[var(--ink)]">
             FrontierGram
           </span>
-          <h1 className="mt-6 font-serif text-3xl italic text-[var(--ink)]">
+          <h1 className="mt-6 font-serif text-4xl italic text-[var(--ink)]">
             Welcome back
           </h1>
           <p className="mt-2 text-sm text-[var(--ink-soft)]">
@@ -89,7 +89,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="email"
@@ -104,7 +104,7 @@ export default function LoginPage() {
               autoComplete="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="rounded-lg border border-[var(--line)] bg-[var(--paper)] px-3.5 py-2.5 text-sm text-[var(--ink)] outline-none focus:border-[var(--blush)]"
+              className="rounded-lg border border-[var(--line)] bg-[var(--paper)] px-4 py-3 text-base text-[var(--ink)] outline-none focus:border-[var(--blush)]"
             />
           </div>
 
@@ -122,12 +122,12 @@ export default function LoginPage() {
               autoComplete="current-password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="rounded-lg border border-[var(--line)] bg-[var(--paper)] px-3.5 py-2.5 text-sm text-[var(--ink)] outline-none focus:border-[var(--blush)]"
+              className="rounded-lg border border-[var(--line)] bg-[var(--paper)] px-4 py-3 text-base text-[var(--ink)] outline-none focus:border-[var(--blush)]"
             />
           </div>
 
           {error && (
-            <p className="rounded-lg border border-[var(--blush)] bg-[var(--blush-tint)] px-3.5 py-2.5 text-sm text-[var(--ink)]">
+            <p className="rounded-lg border border-[var(--blush)] bg-[var(--blush-tint)] px-4 py-3 text-sm text-[var(--ink)]">
               {error}
             </p>
           )}
@@ -135,7 +135,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-2 rounded-full bg-[var(--ink)] px-5 py-2.5 text-sm font-medium text-[var(--cream)] transition-opacity disabled:opacity-60"
+            className="mt-2 rounded-full bg-[var(--ink)] px-6 py-3 text-base font-medium text-[var(--cream)] transition-opacity disabled:opacity-60"
           >
             {loading ? "Signing in…" : "Sign in"}
           </button>
