@@ -5,6 +5,7 @@ export type FeedPost = {
   id: number;
   userId: string;
   username: string;
+  avatarUrl: string | null;
   caption: string | null;
   createdAt: string | null;
   imageUrl: string;
@@ -19,8 +20,11 @@ type PostRow = {
   image_url: string;
   caption: string | null;
   created_at: string | null;
-  profiles: { username: string } | null;
+  profiles: { username: string; avatar_url: string | null } | null;
 };
+
+const POST_COLUMNS =
+  "id, user_id, image_url, caption, created_at, profiles ( username, avatar_url )";
 
 type LikeRow = {
   post_id: number;
@@ -45,6 +49,7 @@ function mapRow(row: PostRow): BasePost {
     id: row.id,
     userId: row.user_id,
     username: row.profiles?.username ?? "unknown",
+    avatarUrl: row.profiles?.avatar_url ?? null,
     caption: row.caption,
     createdAt: row.created_at,
     imageUrl: row.image_url,
@@ -122,7 +127,7 @@ async function attachCommentCounts(posts: WithLikes[]): Promise<FeedPost[]> {
 export async function getFeedPosts(viewerId?: string): Promise<FeedPost[]> {
   const { data, error } = await supabase
     .from("posts")
-    .select("id, user_id, image_url, caption, created_at, profiles ( username )")
+    .select(POST_COLUMNS)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -140,7 +145,7 @@ export async function getUserPosts(
 ): Promise<FeedPost[]> {
   const { data, error } = await supabase
     .from("posts")
-    .select("id, user_id, image_url, caption, created_at, profiles ( username )")
+    .select(POST_COLUMNS)
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
@@ -159,7 +164,7 @@ export async function getPostById(
 ): Promise<FeedPost | null> {
   const { data, error } = await supabase
     .from("posts")
-    .select("id, user_id, image_url, caption, created_at, profiles ( username )")
+    .select(POST_COLUMNS)
     .eq("id", postId)
     .maybeSingle();
 

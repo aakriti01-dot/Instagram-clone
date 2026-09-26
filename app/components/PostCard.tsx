@@ -33,12 +33,21 @@ export default function PostCard({
   return (
     <article className="border-b border-[var(--line)] bg-[var(--paper)] sm:rounded-2xl sm:border sm:border-[var(--line)] sm:shadow-[0_1px_3px_rgba(38,34,32,0.06)]">
       <div className="flex items-center gap-3 px-4 py-3">
-        <span
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-serif text-sm text-[var(--ink)]"
-          style={{ backgroundColor: accentTint }}
-        >
-          {initials(post.username)}
-        </span>
+        {post.avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={post.avatarUrl}
+            alt=""
+            className="h-9 w-9 shrink-0 rounded-full object-cover"
+          />
+        ) : (
+          <span
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-serif text-sm text-[var(--ink)]"
+            style={{ backgroundColor: accentTint }}
+          >
+            {initials(post.username)}
+          </span>
+        )}
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-[var(--ink)]">
             {post.username}
