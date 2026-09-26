@@ -57,6 +57,22 @@ export async function isFollowing(
   return data !== null;
 }
 
+// Batched lookup for "which of these search results do I already follow" —
+// one query regardless of how many results are shown, rather than one
+// isFollowing() call per row.
+export async function getFollowingIds(followerId: string): Promise<Set<string>> {
+  const { data, error } = await supabase
+    .from("follows")
+    .select("followed_id")
+    .eq("follower_id", followerId);
+
+  if (error) {
+    throw error;
+  }
+
+  return new Set((data ?? []).map((row) => row.followed_id as string));
+}
+
 export type FollowCounts = {
   followers: number;
   following: number;

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import BottomNav from "@/app/components/BottomNav";
+import HeaderSearch from "@/app/components/HeaderSearch";
 import { createClient } from "@/lib/supabase-server";
 import { getActivity } from "@/lib/notifications";
 import {
@@ -13,20 +14,18 @@ import {
 const iconLinkClassName =
   "relative text-[var(--ink)] transition-colors hover:text-[var(--blush)]";
 
-async function getUnreadActivityCount(): Promise<number> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return 0;
+async function getUnreadActivityCount(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string | null
+): Promise<number> {
+  if (!userId) return 0;
 
   const [activity, profileResult] = await Promise.all([
-    getActivity(user.id),
+    getActivity(userId),
     supabase
       .from("profiles")
       .select("last_seen_activity_at")
-      .eq("id", user.id)
+      .eq("id", userId)
       .single(),
   ]);
 
@@ -53,7 +52,13 @@ export default async function MainLayout({
 }: {
   children: ReactNode;
 }) {
-  const unreadCount = await getUnreadActivityCount();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const viewerId = user?.id ?? null;
+
+  const unreadCount = await getUnreadActivityCount(supabase, viewerId);
 
   return (
     <>
@@ -65,6 +70,10 @@ export default async function MainLayout({
           >
             FrontierGram
           </Link>
+
+          <div className="hidden flex-1 justify-center px-8 sm:flex">
+            <HeaderSearch viewerId={viewerId} />
+          </div>
 
           <div className="hidden shrink-0 items-center gap-5 sm:flex">
             <Link href="/feed" aria-label="Home" className={iconLinkClassName}>
