@@ -45,14 +45,6 @@ export function ShareIcon({ className }: IconProps) {
   );
 }
 
-export function BookmarkIcon({ className }: IconProps) {
-  return (
-    <svg {...base} className={className} aria-hidden="true">
-      <path d="M6 3.5h12v17l-6-4.2-6 4.2v-17Z" />
-    </svg>
-  );
-}
-
 export function SearchIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
