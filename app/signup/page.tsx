@@ -56,7 +56,7 @@ export default function SignupPage() {
       }
 
       if (data.session) {
-        router.push("/");
+        router.push("/feed");
         router.refresh();
       } else {
         setNotice(

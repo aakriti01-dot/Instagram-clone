@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase-server";
 import { getActivity, type ActivityActor } from "@/lib/notifications";
+import FollowButton from "@/app/components/FollowButton";
 
 function formatRelativeTime(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -41,6 +42,21 @@ function ActorAvatar({ actor }: { actor: ActivityActor }) {
   );
 }
 
+// There's no "seen/dismissed" tracking anywhere in this app, and adding one
+// would mean a new table just for this. Instead this derives "should still
+// look new" from profiles.created_at, the account-creation timestamp that
+// already exists — the welcome row simply stops appearing once that account
+// is older than this window, which is a one-way threshold (never comes back)
+// rather than a true per-user "have they seen it" flag. Documented limitation:
+// a user who signed up recently and re-visits repeatedly will see it every
+// time within the window, not just once.
+const WELCOME_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+function isWithinWelcomeWindow(createdAt: string | undefined): boolean {
+  if (!createdAt) return false;
+  return Date.now() - new Date(createdAt).getTime() < WELCOME_WINDOW_MS;
+}
+
 export default async function ActivityPage() {
   const supabase = await createClient();
   const {
@@ -51,7 +67,19 @@ export default async function ActivityPage() {
     redirect("/login");
   }
 
-  const activity = await getActivity(user.id);
+  const [activity, profileResult] = await Promise.all([
+    getActivity(user.id),
+    supabase.from("profiles").select("created_at").eq("id", user.id).single(),
+  ]);
+
+  const showWelcome = isWithinWelcomeWindow(profileResult.data?.created_at);
+
+  // Viewing Activity marks everything up to now as seen, so the header's
+  // unread badge (computed from this same timestamp) clears on next load.
+  await supabase
+    .from("profiles")
+    .update({ last_seen_activity_at: new Date().toISOString() })
+    .eq("id", user.id);
 
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6 sm:max-w-xl sm:px-6 sm:py-8">
@@ -59,7 +87,7 @@ export default async function ActivityPage() {
         Activity
       </h1>
 
-      {activity.length === 0 ? (
+      {!showWelcome && activity.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-20 text-center">
           <p className="font-serif text-xl italic text-[var(--ink)]">
             No activity yet
@@ -71,6 +99,22 @@ export default async function ActivityPage() {
         </div>
       ) : (
         <ul className="flex flex-col">
+          {showWelcome && (
+            <li className="flex items-center gap-3 border-b border-[var(--line)] bg-[var(--blush-tint)] py-3 last:border-b-0">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--paper)] text-xl">
+                👋
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-[var(--ink)]">
+                  Welcome to FrontierGram! 👋
+                </p>
+                <p className="text-xs text-[var(--ink-soft)]">
+                  Your account is ready. Start sharing moments and connecting
+                  with people.
+                </p>
+              </div>
+            </li>
+          )}
           {activity.map((item) => (
             <li
               key={item.id}
@@ -132,6 +176,16 @@ export default async function ActivityPage() {
                     sizes="48px"
                   />
                 </Link>
+              )}
+
+              {item.type === "follow" && (
+                <div className="shrink-0">
+                  <FollowButton
+                    viewerId={user.id}
+                    targetUserId={item.actor.id}
+                    initialFollowing={item.alreadyFollowing}
+                  />
+                </div>
               )}
             </li>
           ))}

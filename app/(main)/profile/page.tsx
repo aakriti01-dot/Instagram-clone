@@ -6,6 +6,11 @@ import { getUserPosts } from "@/lib/posts";
 import { getFollowCounts } from "@/lib/follows";
 import ProfileMenu from "@/app/components/ProfileMenu";
 
+// Forces this route to always be rendered fresh on every request — without
+// this, a saved edit followed by router.refresh() could still risk showing
+// a cached render of the previous profile state.
+export const dynamic = "force-dynamic";
+
 export default async function ProfilePage() {
   const supabase = await createClient();
   const {

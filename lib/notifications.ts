@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 
 export type ActivityActor = {
+  id: string;
   username: string;
   displayName: string | null;
   avatarUrl: string | null;
@@ -12,6 +13,7 @@ export type ActivityItem =
       id: string;
       createdAt: string;
       actor: ActivityActor;
+      alreadyFollowing: boolean;
     }
   | {
       type: "like";
@@ -38,6 +40,7 @@ export type ActivityItem =
     };
 
 type ProfileEmbed = {
+  id: string;
   username: string;
   display_name: string | null;
   avatar_url: string | null;
@@ -45,6 +48,7 @@ type ProfileEmbed = {
 
 function mapActor(profile: ProfileEmbed): ActivityActor {
   return {
+    id: profile?.id ?? "",
     username: profile?.username ?? "unknown",
     displayName: profile?.display_name ?? null,
     avatarUrl: profile?.avatar_url ?? null,
@@ -108,7 +112,7 @@ async function getReplyItems(viewerId: string): Promise<ActivityItem[]> {
   const { data, error } = await supabase
     .from("comments")
     .select(
-      "id, created_at, content, user_id, post:posts!inner(id, image_url), replier:profiles!user_id(username, display_name, avatar_url)"
+      "id, created_at, content, user_id, post:posts!inner(id, image_url), replier:profiles!user_id(id, username, display_name, avatar_url)"
     )
     .in("parent_id", ownedIds)
     .neq("user_id", viewerId)
@@ -137,17 +141,17 @@ async function getReplyItems(viewerId: string): Promise<ActivityItem[]> {
 // posts, missing profiles, self-actions) falls out of the query shape itself
 // rather than needing separate handling.
 export async function getActivity(viewerId: string): Promise<ActivityItem[]> {
-  const [followsResult, likesResult, commentsResult, replyItems] = await Promise.all([
+  const [followsResult, likesResult, commentsResult, replyItems, myFollowingResult] = await Promise.all([
     supabase
       .from("follows")
-      .select("id, created_at, follower:profiles!follower_id(username, display_name, avatar_url)")
+      .select("id, created_at, follower:profiles!follower_id(id, username, display_name, avatar_url)")
       .eq("followed_id", viewerId)
       .order("created_at", { ascending: false })
       .limit(PER_SOURCE_LIMIT),
     supabase
       .from("likes")
       .select(
-        "id, created_at, user_id, post:posts!inner(id, user_id, image_url), liker:profiles!user_id(username, display_name, avatar_url)"
+        "id, created_at, user_id, post:posts!inner(id, user_id, image_url), liker:profiles!user_id(id, username, display_name, avatar_url)"
       )
       .eq("post.user_id", viewerId)
       .neq("user_id", viewerId)
@@ -156,7 +160,7 @@ export async function getActivity(viewerId: string): Promise<ActivityItem[]> {
     supabase
       .from("comments")
       .select(
-        "id, created_at, content, user_id, post:posts!inner(id, user_id, image_url), commenter:profiles!user_id(username, display_name, avatar_url)"
+        "id, created_at, content, user_id, post:posts!inner(id, user_id, image_url), commenter:profiles!user_id(id, username, display_name, avatar_url)"
       )
       // Top-level comments only — a reply is a distinct notification type
       // below, going to the parent comment's owner rather than the post
@@ -167,21 +171,32 @@ export async function getActivity(viewerId: string): Promise<ActivityItem[]> {
       .order("created_at", { ascending: false })
       .limit(PER_SOURCE_LIMIT),
     getReplyItems(viewerId),
+    // Batched once, rather than one isFollowing() call per follow
+    // notification, so the "Follow Back" button on each can start in the
+    // correct state (already mutual vs. not) without an N+1 query pattern.
+    supabase.from("follows").select("followed_id").eq("follower_id", viewerId),
   ]);
 
   if (followsResult.error) throw followsResult.error;
   if (likesResult.error) throw likesResult.error;
   if (commentsResult.error) throw commentsResult.error;
+  if (myFollowingResult.error) throw myFollowingResult.error;
 
   const followRows = (followsResult.data ?? []) as unknown as FollowRow[];
   const likeRows = (likesResult.data ?? []) as unknown as LikeRow[];
   const commentRows = (commentsResult.data ?? []) as unknown as CommentRow[];
+  const myFollowingIds = new Set(
+    (myFollowingResult.data ?? []).map(
+      (row) => (row as { followed_id: string }).followed_id
+    )
+  );
 
   const followItems: ActivityItem[] = followRows.map((row) => ({
     type: "follow",
     id: `follow-${row.id}`,
     createdAt: row.created_at,
     actor: mapActor(row.follower),
+    alreadyFollowing: myFollowingIds.has(row.follower?.id ?? ""),
   }));
 
   // Defensive de-dupe by (post, liker) in case the same post/user pair is

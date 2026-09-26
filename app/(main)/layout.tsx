@@ -1,18 +1,60 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import BottomNav from "@/app/components/BottomNav";
+import { createClient } from "@/lib/supabase-server";
+import { getActivity } from "@/lib/notifications";
 import {
   HeartIcon,
   HomeIcon,
   PlusSquareIcon,
-  SearchIcon,
   UserIcon,
 } from "@/app/components/icons";
 
 const iconLinkClassName =
-  "text-[var(--ink)] transition-colors hover:text-[var(--blush)]";
+  "relative text-[var(--ink)] transition-colors hover:text-[var(--blush)]";
 
-export default function MainLayout({ children }: { children: ReactNode }) {
+async function getUnreadActivityCount(): Promise<number> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return 0;
+
+  const [activity, profileResult] = await Promise.all([
+    getActivity(user.id),
+    supabase
+      .from("profiles")
+      .select("last_seen_activity_at")
+      .eq("id", user.id)
+      .single(),
+  ]);
+
+  const lastSeen = profileResult.data?.last_seen_activity_at;
+  const lastSeenMs = lastSeen ? new Date(lastSeen).getTime() : 0;
+
+  return activity.filter(
+    (item) => new Date(item.createdAt).getTime() > lastSeenMs
+  ).length;
+}
+
+function NotificationBadge({ count }: { count: number }) {
+  if (count === 0) return null;
+
+  return (
+    <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--blush)] px-1 text-[10px] font-medium text-[var(--cream)]">
+      {count > 9 ? "9+" : count}
+    </span>
+  );
+}
+
+export default async function MainLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const unreadCount = await getUnreadActivityCount();
+
   return (
     <>
       <header className="sticky top-0 z-10 border-b border-[var(--line)] bg-[var(--cream)]/90 backdrop-blur">
@@ -23,16 +65,6 @@ export default function MainLayout({ children }: { children: ReactNode }) {
           >
             FrontierGram
           </Link>
-
-          <div className="hidden flex-1 justify-center px-8 sm:flex">
-            <Link
-              href="/search"
-              className="flex w-full max-w-xs items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2 text-[var(--ink-soft)] transition-colors hover:border-[var(--blush)]"
-            >
-              <SearchIcon className="h-4 w-4 shrink-0" />
-              <span className="text-sm">Search</span>
-            </Link>
-          </div>
 
           <div className="hidden shrink-0 items-center gap-5 sm:flex">
             <Link href="/feed" aria-label="Home" className={iconLinkClassName}>
@@ -51,6 +83,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
               className={iconLinkClassName}
             >
               <HeartIcon className="h-[22px] w-[22px]" />
+              <NotificationBadge count={unreadCount} />
             </Link>
             <Link
               href="/profile"
@@ -68,6 +101,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
               className={iconLinkClassName}
             >
               <HeartIcon className="h-[22px] w-[22px]" />
+              <NotificationBadge count={unreadCount} />
             </Link>
             <Link
               href="/profile"
@@ -82,7 +116,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
 
       <div className="flex flex-1 flex-col pb-20 sm:pb-0">{children}</div>
 
-      <BottomNav />
+      <BottomNav unreadCount={unreadCount} />
     </>
   );
 }
