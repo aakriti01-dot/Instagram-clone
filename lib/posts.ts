@@ -153,6 +153,29 @@ export async function getUserPosts(
   return attachCommentCounts(withLikes);
 }
 
+export async function getPostById(
+  postId: number,
+  viewerId?: string
+): Promise<FeedPost | null> {
+  const { data, error } = await supabase
+    .from("posts")
+    .select("id, user_id, image_url, caption, created_at, profiles ( username )")
+    .eq("id", postId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+  if (!data) {
+    return null;
+  }
+
+  const row = data as unknown as PostRow;
+  const [withLikes] = await attachLikeData([mapRow(row)], viewerId);
+  const [withComments] = await attachCommentCounts([withLikes]);
+  return withComments;
+}
+
 export type DeletePostResult = {
   storageCleanupFailed: boolean;
 };

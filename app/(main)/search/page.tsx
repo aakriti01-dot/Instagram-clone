@@ -1,10 +1,15 @@
-import ComingSoon from "@/app/components/ComingSoon";
+import { createClient } from "@/lib/supabase-server";
+import UserSearch from "@/app/components/UserSearch";
 
-export default function SearchPage() {
+export default async function SearchPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
-    <ComingSoon
-      title="Search"
-      description="Finding people and moments is coming soon."
-    />
+    <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6 sm:max-w-xl sm:px-6 sm:py-8">
+      <UserSearch viewerId={user?.id ?? null} />
+    </main>
   );
 }

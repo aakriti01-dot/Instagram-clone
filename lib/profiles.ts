@@ -47,6 +47,20 @@ export async function getProfileByUsername(
   return data ? mapProfileRow(data as ProfileRow) : null;
 }
 
+export async function getProfileById(userId: string): Promise<Profile | null> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select(PROFILE_COLUMNS)
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data ? mapProfileRow(data as ProfileRow) : null;
+}
+
 export async function searchProfiles(
   query: string,
   excludeUserId?: string

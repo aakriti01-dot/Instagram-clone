@@ -25,10 +25,13 @@ export default function MainLayout({ children }: { children: ReactNode }) {
           </Link>
 
           <div className="hidden flex-1 justify-center px-8 sm:flex">
-            <div className="flex w-full max-w-xs items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2 text-[var(--ink-soft)]">
+            <Link
+              href="/search"
+              className="flex w-full max-w-xs items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2 text-[var(--ink-soft)] transition-colors hover:border-[var(--blush)]"
+            >
               <SearchIcon className="h-4 w-4 shrink-0" />
               <span className="text-sm">Search</span>
-            </div>
+            </Link>
           </div>
 
           <div className="hidden shrink-0 items-center gap-5 sm:flex">

@@ -5,13 +5,15 @@ import { useRouter } from "next/navigation";
 import { CloseIcon } from "@/app/components/icons";
 import {
   addComment,
+  buildCommentTree,
   deleteComment,
   getPostComments,
   type Comment,
 } from "@/lib/comments";
+import { getProfileById } from "@/lib/profiles";
 
-function initials(username: string) {
-  return username.charAt(0).toUpperCase();
+function initials(name: string) {
+  return name.charAt(0).toUpperCase();
 }
 
 function formatDate(iso: string) {
@@ -19,6 +21,27 @@ function formatDate(iso: string) {
     month: "short",
     day: "numeric",
   });
+}
+
+function CommentAvatar({
+  avatarUrl,
+  name,
+}: {
+  avatarUrl: string | null;
+  name: string;
+}) {
+  return avatarUrl ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={avatarUrl}
+      alt=""
+      className="h-8 w-8 shrink-0 rounded-full object-cover"
+    />
+  ) : (
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--powder-tint)] font-serif text-sm text-[var(--ink)]">
+      {initials(name)}
+    </span>
+  );
 }
 
 export default function CommentModal({
@@ -36,6 +59,10 @@ export default function CommentModal({
 }) {
   const router = useRouter();
   const [comments, setComments] = useState<Comment[]>([]);
+  const [viewerAvatarUrl, setViewerAvatarUrl] = useState<string | null>(null);
+  const [viewerDisplayName, setViewerDisplayName] = useState<string | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [content, setContent] = useState("");
@@ -43,6 +70,10 @@ export default function CommentModal({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<{
+    id: number;
+    username: string;
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,11 +91,31 @@ export default function CommentModal({
         if (!cancelled) setLoading(false);
       });
 
+    if (viewerId) {
+      getProfileById(viewerId)
+        .then((profile) => {
+          if (cancelled || !profile) return;
+          setViewerAvatarUrl(profile.avatarUrl);
+          setViewerDisplayName(profile.displayName);
+        })
+        .catch(() => {
+          // Optimistic-render detail only — not worth surfacing an error for.
+        });
+    }
+
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [postId]);
+  }, [postId, viewerId]);
+
+  function handleReply(comment: Comment) {
+    setReplyingTo({ id: comment.id, username: comment.username });
+  }
+
+  function cancelReply() {
+    setReplyingTo(null);
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -80,20 +131,31 @@ export default function CommentModal({
     setSubmitting(true);
     setSubmitError(null);
 
+    const parentId = replyingTo?.id ?? null;
+
     try {
-      const { id, createdAt } = await addComment(postId, viewerId, trimmed);
+      const { id, createdAt } = await addComment(
+        postId,
+        viewerId,
+        trimmed,
+        parentId
+      );
       const newComment: Comment = {
         id,
         postId,
         userId: viewerId,
         username: viewerUsername,
+        displayName: viewerDisplayName,
+        avatarUrl: viewerAvatarUrl,
         content: trimmed,
         createdAt,
+        parentId,
       };
       const next = [...comments, newComment];
       setComments(next);
       onCountChange(next.length);
       setContent("");
+      setReplyingTo(null);
     } catch {
       setSubmitError("Couldn't post your comment. Try again.");
     } finally {
@@ -107,7 +169,11 @@ export default function CommentModal({
     setDeleteError(null);
     setDeletingId(commentId);
     const previous = comments;
-    const next = previous.filter((comment) => comment.id !== commentId);
+    // Deleting a top-level comment cascades to its replies in the database —
+    // mirror that locally so the optimistic UI doesn't show orphaned replies.
+    const next = previous.filter(
+      (comment) => comment.id !== commentId && comment.parentId !== commentId
+    );
     setComments(next);
     onCountChange(next.length);
 
@@ -121,6 +187,8 @@ export default function CommentModal({
       setDeletingId(null);
     }
   }
+
+  const thread = buildCommentTree(comments);
 
   return (
     <div
@@ -158,7 +226,7 @@ export default function CommentModal({
             <p className="py-10 text-center text-sm text-[var(--ink-soft)]">
               Couldn&apos;t load comments. Try again shortly.
             </p>
-          ) : comments.length === 0 ? (
+          ) : thread.length === 0 ? (
             <div className="flex flex-col items-center gap-1 py-10 text-center">
               <p className="font-serif text-lg italic text-[var(--ink)]">
                 No comments yet.
@@ -169,36 +237,84 @@ export default function CommentModal({
             </div>
           ) : (
             <ul className="flex flex-col gap-4">
-              {comments.map((comment) => (
-                <li key={comment.id} className="flex items-start gap-3">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--powder-tint)] font-serif text-sm text-[var(--ink)]">
-                    {initials(comment.username)}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm leading-relaxed break-words text-[var(--ink)]">
-                      <span className="mr-1.5 font-medium">
-                        {comment.username}
-                      </span>
-                      {comment.content}
-                    </p>
-                    <div className="mt-1 flex items-center gap-3">
-                      <time className="text-xs text-[var(--ink-soft)]">
-                        {formatDate(comment.createdAt)}
-                      </time>
-                      {viewerId === comment.userId && (
+              {thread.map((comment) => (
+                <li key={comment.id} className="flex flex-col gap-3">
+                  <div className="flex items-start gap-3">
+                    <CommentAvatar
+                      avatarUrl={comment.avatarUrl}
+                      name={comment.displayName || comment.username}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm leading-relaxed break-words text-[var(--ink)]">
+                        <span className="mr-1.5 font-medium">
+                          {comment.username}
+                        </span>
+                        {comment.content}
+                      </p>
+                      <div className="mt-1 flex items-center gap-3">
+                        <time className="text-xs text-[var(--ink-soft)]">
+                          {formatDate(comment.createdAt)}
+                        </time>
                         <button
                           type="button"
-                          onClick={() => handleDelete(comment.id)}
-                          disabled={deletingId === comment.id}
-                          className="-m-2 p-2 text-xs text-[var(--ink-soft)] transition-colors hover:text-[var(--blush)] disabled:opacity-60"
+                          onClick={() => handleReply(comment)}
+                          className="-m-2 p-2 text-xs font-medium text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)]"
                         >
-                          {deletingId === comment.id
-                            ? "Deleting…"
-                            : "Delete"}
+                          Reply
                         </button>
-                      )}
+                        {viewerId === comment.userId && (
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(comment.id)}
+                            disabled={deletingId === comment.id}
+                            className="-m-2 p-2 text-xs text-[var(--ink-soft)] transition-colors hover:text-[var(--blush)] disabled:opacity-60"
+                          >
+                            {deletingId === comment.id
+                              ? "Deleting…"
+                              : "Delete"}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
+
+                  {comment.replies.length > 0 && (
+                    <ul className="flex flex-col gap-3 pl-11">
+                      {comment.replies.map((reply) => (
+                        <li key={reply.id} className="flex items-start gap-3">
+                          <CommentAvatar
+                            avatarUrl={reply.avatarUrl}
+                            name={reply.displayName || reply.username}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm leading-relaxed break-words text-[var(--ink)]">
+                              <span className="mr-1.5 font-medium">
+                                {reply.username}
+                              </span>
+                              {reply.content}
+                            </p>
+                            <div className="mt-1 flex items-center gap-3">
+                              <time className="text-xs text-[var(--ink-soft)]">
+                                {formatDate(reply.createdAt)}
+                              </time>
+                              {viewerId === reply.userId && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDelete(reply.id)}
+                                  disabled={deletingId === reply.id}
+                                  className="-m-2 p-2 text-xs text-[var(--ink-soft)] transition-colors hover:text-[var(--blush)] disabled:opacity-60"
+                                >
+                                  {deletingId === reply.id
+                                    ? "Deleting…"
+                                    : "Delete"}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               ))}
             </ul>
@@ -210,15 +326,38 @@ export default function CommentModal({
           )}
         </div>
 
+        {replyingTo && (
+          <div className="flex items-center justify-between border-t border-[var(--line)] bg-[var(--cream)] px-4 py-1.5">
+            <span className="text-xs text-[var(--ink-soft)]">
+              Replying to <span className="font-medium">@{replyingTo.username}</span>
+            </span>
+            <button
+              type="button"
+              onClick={cancelReply}
+              aria-label="Cancel reply"
+              title="Cancel reply"
+              className="-m-1.5 p-1.5 text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)]"
+            >
+              <CloseIcon className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+
         <form
           onSubmit={handleSubmit}
-          className="flex items-center gap-2 border-t border-[var(--line)] px-4 py-3"
+          className={`flex items-center gap-2 px-4 py-3 ${
+            replyingTo ? "" : "border-t border-[var(--line)]"
+          }`}
         >
           <input
             type="text"
             value={content}
             onChange={(event) => setContent(event.target.value)}
-            placeholder="Add a comment…"
+            placeholder={
+              replyingTo
+                ? `Reply to @${replyingTo.username}…`
+                : "Add a comment…"
+            }
             className="flex-1 rounded-full border border-[var(--line)] bg-[var(--cream)] px-4 py-2 text-sm text-[var(--ink)] outline-none focus:border-[var(--blush)]"
           />
           <button
