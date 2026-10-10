@@ -24,12 +24,16 @@ export default function PostCard({
   index,
   viewerId,
   viewerUsername,
+  viewerAvatarUrl,
+  viewerDisplayName,
   autoOpenCommentId,
 }: {
   post: FeedPost;
   index: number;
   viewerId: string | null;
   viewerUsername: string | null;
+  viewerAvatarUrl: string | null;
+  viewerDisplayName: string | null;
   autoOpenCommentId?: number;
 }) {
   const accentTint = index % 2 === 0 ? "var(--blush-tint)" : "var(--powder-tint)";
@@ -57,6 +61,14 @@ export default function PostCard({
           <p className="truncate text-sm font-medium text-[var(--ink)]">
             {post.username}
           </p>
+          {post.location && (
+            <p
+              title={post.location}
+              className="truncate text-xs text-[var(--ink-soft)]"
+            >
+              {post.location}
+            </p>
+          )}
           {date && (
             <time className="block text-xs text-[var(--ink-soft)]">
               {date}
@@ -102,6 +114,8 @@ export default function PostCard({
           postId={post.id}
           viewerId={viewerId}
           viewerUsername={viewerUsername}
+          viewerAvatarUrl={viewerAvatarUrl}
+          viewerDisplayName={viewerDisplayName}
           initialCount={post.commentCount}
           autoOpenCommentId={autoOpenCommentId}
         />

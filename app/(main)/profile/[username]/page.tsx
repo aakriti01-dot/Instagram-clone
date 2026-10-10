@@ -14,13 +14,16 @@ export default async function UserProfilePage({
 }) {
   const { username } = await params;
 
-  const user = await getCurrentUser();
+  // Independent of each other — fetched concurrently instead of one after
+  // the other.
+  const [user, profile] = await Promise.all([
+    getCurrentUser(),
+    getProfileByUsername(username),
+  ]);
 
   if (!user) {
     redirect("/login");
   }
-
-  const profile = await getProfileByUsername(username);
 
   if (!profile) {
     notFound();

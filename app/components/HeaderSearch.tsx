@@ -33,6 +33,26 @@ export default function HeaderSearch({ viewerId }: { viewerId: string | null }) 
     }
   }
 
+  // The viewer's own following list doesn't change while they type a search
+  // query, so it's fetched once per viewer rather than being re-fetched on
+  // every debounced keystroke alongside the text search.
+  useEffect(() => {
+    if (!viewerId) return;
+
+    let cancelled = false;
+    getFollowingIds(viewerId)
+      .then((ids) => {
+        if (!cancelled) setFollowingIds(ids);
+      })
+      .catch(() => {
+        if (!cancelled) setFollowingIds(new Set());
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [viewerId]);
+
   useEffect(() => {
     const trimmed = query.trim();
     if (!trimmed) return;
@@ -40,14 +60,10 @@ export default function HeaderSearch({ viewerId }: { viewerId: string | null }) 
     let cancelled = false;
 
     const timer = setTimeout(() => {
-      Promise.all([
-        searchProfiles(trimmed, viewerId ?? undefined),
-        viewerId ? getFollowingIds(viewerId) : Promise.resolve(new Set<string>()),
-      ])
-        .then(([profiles, ids]) => {
+      searchProfiles(trimmed, viewerId ?? undefined)
+        .then((profiles) => {
           if (cancelled) return;
           setResults(profiles);
-          setFollowingIds(ids);
         })
         .catch(() => {
           if (!cancelled) setResults([]);
@@ -145,6 +161,17 @@ export default function HeaderSearch({ viewerId }: { viewerId: string | null }) 
                     viewerId={viewerId}
                     targetUserId={result.id}
                     initialFollowing={followingIds.has(result.id)}
+                    onToggle={(following) => {
+                      setFollowingIds((prev) => {
+                        const next = new Set(prev);
+                        if (following) {
+                          next.add(result.id);
+                        } else {
+                          next.delete(result.id);
+                        }
+                        return next;
+                      });
+                    }}
                   />
                 </li>
               ))}

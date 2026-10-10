@@ -8,10 +8,12 @@ export default function FollowButton({
   viewerId,
   targetUserId,
   initialFollowing,
+  onToggle,
 }: {
   viewerId: string | null;
   targetUserId: string;
   initialFollowing: boolean;
+  onToggle?: (following: boolean) => void;
 }) {
   const router = useRouter();
   const [following, setFollowing] = useState(initialFollowing);
@@ -30,6 +32,7 @@ export default function FollowButton({
 
     setError(null);
     setFollowing(nextFollowing);
+    onToggle?.(nextFollowing);
     setPending(true);
 
     try {
@@ -40,6 +43,7 @@ export default function FollowButton({
       }
     } catch {
       setFollowing(previousFollowing);
+      onToggle?.(previousFollowing);
       setError("Couldn't update. Try again.");
     } finally {
       setPending(false);

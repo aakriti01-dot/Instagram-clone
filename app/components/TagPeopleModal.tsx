@@ -30,6 +30,7 @@ export default function TagPeopleModal({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,8 +39,10 @@ export default function TagPeopleModal({
     if (!value.trim()) {
       setResults([]);
       setLoading(false);
+      setSearchError(false);
     } else {
       setLoading(true);
+      setSearchError(false);
     }
   }
 
@@ -58,7 +61,9 @@ export default function TagPeopleModal({
           setResults(data.filter((p) => !taggedIds.has(p.id)));
         })
         .catch(() => {
-          if (!cancelled) setResults([]);
+          if (cancelled) return;
+          setResults([]);
+          setSearchError(true);
         })
         .finally(() => {
           if (!cancelled) setLoading(false);
@@ -148,6 +153,10 @@ export default function TagPeopleModal({
                 <p className="flex items-center justify-center gap-2 py-3 text-sm text-[var(--ink-soft)]">
                   <Spinner />
                   Searching…
+                </p>
+              ) : searchError ? (
+                <p className="py-3 text-center text-sm text-[var(--ink-soft)]">
+                  Couldn&apos;t search right now. Try again.
                 </p>
               ) : results.length === 0 ? (
                 <p className="py-3 text-center text-sm text-[var(--ink-soft)]">

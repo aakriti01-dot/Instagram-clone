@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 
 // Posts have no recorded width/height — storing that would mean a schema
 // change, out of scope here — so the real aspect ratio isn't known until the
@@ -34,13 +35,14 @@ export default function PostImage({
   }
 
   return (
-    <div className="w-full bg-[var(--cream)]" style={{ aspectRatio }}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+    <div className="relative w-full bg-[var(--cream)]" style={{ aspectRatio }}>
+      <Image
         src={src}
         alt={alt}
-        loading={priority ? "eager" : "lazy"}
-        className="h-full w-full object-contain"
+        fill
+        priority={priority}
+        sizes="(min-width: 1024px) 672px, 100vw"
+        className="object-contain"
         onLoad={(event) => {
           const { naturalWidth, naturalHeight } = event.currentTarget;
           if (naturalWidth && naturalHeight) {

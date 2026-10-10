@@ -9,12 +9,16 @@ export default function CommentButton({
   postId,
   viewerId,
   viewerUsername,
+  viewerAvatarUrl,
+  viewerDisplayName,
   initialCount,
   autoOpenCommentId,
 }: {
   postId: number;
   viewerId: string | null;
   viewerUsername: string | null;
+  viewerAvatarUrl: string | null;
+  viewerDisplayName: string | null;
   initialCount: number;
   autoOpenCommentId?: number;
 }) {
@@ -56,6 +60,8 @@ export default function CommentButton({
           postId={postId}
           viewerId={viewerId}
           viewerUsername={viewerUsername}
+          viewerAvatarUrl={viewerAvatarUrl}
+          viewerDisplayName={viewerDisplayName}
           onClose={() => setOpen(false)}
           onCountChange={setCount}
           highlightCommentId={autoOpenCommentId}

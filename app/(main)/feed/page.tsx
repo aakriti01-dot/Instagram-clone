@@ -7,24 +7,32 @@ export default async function Home() {
   const user = await getCurrentUser();
   const viewerId = user?.id ?? null;
 
-  let viewerUsername: string | null = null;
-  if (viewerId) {
-    const { data: viewerProfile } = await supabase
-      .from("profiles")
-      .select("username")
-      .eq("id", viewerId)
-      .single();
-    viewerUsername = viewerProfile?.username ?? null;
-  }
+  // Independent of each other — the viewer's own profile and the feed's
+  // posts don't depend on one another's result — so they run concurrently
+  // instead of one after the other.
+  const [viewerProfileResult, postsResult] = await Promise.all([
+    viewerId
+      ? supabase
+          .from("profiles")
+          .select("username, avatar_url, display_name")
+          .eq("id", viewerId)
+          .single()
+      : Promise.resolve({ data: null }),
+    getFeedPosts(viewerId ?? undefined).then(
+      (data) => ({ data, failed: false as const }),
+      () => ({
+        data: [] as Awaited<ReturnType<typeof getFeedPosts>>,
+        failed: true as const,
+      })
+    ),
+  ]);
 
-  let posts: Awaited<ReturnType<typeof getFeedPosts>> = [];
-  let loadError = false;
+  const posts = postsResult.data;
+  const loadError = postsResult.failed;
 
-  try {
-    posts = await getFeedPosts(viewerId ?? undefined);
-  } catch {
-    loadError = true;
-  }
+  const viewerUsername = viewerProfileResult.data?.username ?? null;
+  const viewerAvatarUrl = viewerProfileResult.data?.avatar_url ?? null;
+  const viewerDisplayName = viewerProfileResult.data?.display_name ?? null;
 
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-3 py-4 sm:max-w-xl sm:px-4 sm:py-8 lg:max-w-2xl">
@@ -56,6 +64,8 @@ export default async function Home() {
               index={index}
               viewerId={viewerId}
               viewerUsername={viewerUsername}
+              viewerAvatarUrl={viewerAvatarUrl}
+              viewerDisplayName={viewerDisplayName}
             />
           ))}
         </div>

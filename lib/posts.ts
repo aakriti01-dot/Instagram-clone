@@ -12,6 +12,7 @@ export type FeedPost = {
   username: string;
   avatarUrl: string | null;
   caption: string | null;
+  location: string | null;
   createdAt: string | null;
   imageUrl: string;
   likeCount: number;
@@ -25,12 +26,13 @@ type PostRow = {
   user_id: string;
   image_url: string;
   caption: string | null;
+  location: string | null;
   created_at: string | null;
   profiles: { username: string; avatar_url: string | null } | null;
 };
 
 const POST_COLUMNS =
-  "id, user_id, image_url, caption, created_at, profiles ( username, avatar_url )";
+  "id, user_id, image_url, caption, location, created_at, profiles ( username, avatar_url )";
 
 type LikeRow = {
   post_id: number;
@@ -50,13 +52,6 @@ type BasePost = Omit<
   FeedPost,
   "likeCount" | "likedByCurrentUser" | "commentCount" | "taggedUsers"
 >;
-type WithLikes = BasePost & {
-  likeCount: number;
-  likedByCurrentUser: boolean;
-};
-type WithComments = WithLikes & {
-  commentCount: number;
-};
 
 function mapRow(row: PostRow): BasePost {
   return {
@@ -65,117 +60,85 @@ function mapRow(row: PostRow): BasePost {
     username: row.profiles?.username ?? "unknown",
     avatarUrl: row.profiles?.avatar_url ?? null,
     caption: row.caption,
+    location: row.location,
     createdAt: row.created_at,
     imageUrl: row.image_url,
   };
 }
 
-// Fetches like data for a set of posts in a single request (not one per
-// post), then aggregates counts and current-viewer membership in memory.
-async function attachLikeData(
+// Likes, comment counts, and tags are each independent lookups keyed only
+// off the post IDs already in hand — none needs another's result — so they
+// run as one parallel batch (one round-trip each, concurrently) instead of
+// three round-trips back to back.
+async function attachEngagementData(
   posts: BasePost[],
   viewerId?: string
-): Promise<WithLikes[]> {
+): Promise<FeedPost[]> {
   if (posts.length === 0) {
     return [];
   }
 
   const postIds = posts.map((post) => post.id);
-  const { data, error } = await supabase
-    .from("likes")
-    .select("post_id, user_id")
-    .in("post_id", postIds);
 
-  if (error) {
-    throw error;
+  const [likesResult, commentsResult, tagsResult] = await Promise.all([
+    supabase.from("likes").select("post_id, user_id").in("post_id", postIds),
+    supabase.from("comments").select("post_id").in("post_id", postIds),
+    // Tags are an additive enrichment, not core post data (unlike likes/
+    // comments) — if this lookup fails for any reason, including the
+    // post_tags table not existing yet in an environment where this
+    // migration hasn't been run, posts should still render normally with no
+    // tags rather than taking the whole feed/profile/post page down with it.
+    supabase
+      .from("post_tags")
+      .select("post_id, tagged_user:profiles!tagged_user_id(id, username)")
+      .in("post_id", postIds),
+  ]);
+
+  if (likesResult.error) {
+    throw likesResult.error;
+  }
+  if (commentsResult.error) {
+    throw commentsResult.error;
   }
 
-  const likeRows = (data ?? []) as LikeRow[];
-  const countByPost = new Map<number, number>();
+  const likeRows = (likesResult.data ?? []) as LikeRow[];
+  const likeCountByPost = new Map<number, number>();
   const likedByViewer = new Set<number>();
 
   for (const row of likeRows) {
-    countByPost.set(row.post_id, (countByPost.get(row.post_id) ?? 0) + 1);
+    likeCountByPost.set(row.post_id, (likeCountByPost.get(row.post_id) ?? 0) + 1);
     if (viewerId && row.user_id === viewerId) {
       likedByViewer.add(row.post_id);
     }
   }
 
-  return posts.map((post) => ({
-    ...post,
-    likeCount: countByPost.get(post.id) ?? 0,
-    likedByCurrentUser: likedByViewer.has(post.id),
-  }));
-}
+  const commentRows = (commentsResult.data ?? []) as CommentCountRow[];
+  const commentCountByPost = new Map<number, number>();
 
-// Same batching approach for comment counts: one request for all posts on
-// the page, not one per post.
-async function attachCommentCounts(
-  posts: WithLikes[]
-): Promise<WithComments[]> {
-  if (posts.length === 0) {
-    return [];
+  for (const row of commentRows) {
+    commentCountByPost.set(
+      row.post_id,
+      (commentCountByPost.get(row.post_id) ?? 0) + 1
+    );
   }
 
-  const postIds = posts.map((post) => post.id);
-  const { data, error } = await supabase
-    .from("comments")
-    .select("post_id")
-    .in("post_id", postIds);
-
-  if (error) {
-    throw error;
-  }
-
-  const rows = (data ?? []) as CommentCountRow[];
-  const countByPost = new Map<number, number>();
-
-  for (const row of rows) {
-    countByPost.set(row.post_id, (countByPost.get(row.post_id) ?? 0) + 1);
-  }
-
-  return posts.map((post) => ({
-    ...post,
-    commentCount: countByPost.get(post.id) ?? 0,
-  }));
-}
-
-// Same batching approach again for tags — one request for all posts on the
-// page rather than one per post. Tagging a user is a post-owner-only action
-// (enforced by RLS, not just this read path), but anyone can see who's
-// tagged, same visibility as likes/comments.
-async function attachTaggedUsers(posts: WithComments[]): Promise<FeedPost[]> {
-  if (posts.length === 0) {
-    return [];
-  }
-
-  const postIds = posts.map((post) => post.id);
-  const { data, error } = await supabase
-    .from("post_tags")
-    .select("post_id, tagged_user:profiles!tagged_user_id(id, username)")
-    .in("post_id", postIds);
-
-  // Tags are an additive enrichment, not core post data (unlike likes/
-  // comments) — if this lookup fails for any reason, including the
-  // post_tags table not existing yet in an environment where this migration
-  // hasn't been run, posts should still render normally with no tags rather
-  // than taking the whole feed/profile/post page down with them.
-  if (error) {
-    return posts.map((post) => ({ ...post, taggedUsers: [] }));
-  }
-
-  const rows = (data ?? []) as unknown as PostTagRow[];
   const taggedByPost = new Map<number, TaggedUser[]>();
 
-  for (const row of rows) {
-    if (!row.tagged_user) continue;
-    const existing = taggedByPost.get(row.post_id) ?? [];
-    existing.push(row.tagged_user);
-    taggedByPost.set(row.post_id, existing);
+  if (!tagsResult.error) {
+    const tagRows = (tagsResult.data ?? []) as unknown as PostTagRow[];
+    for (const row of tagRows) {
+      if (!row.tagged_user) continue;
+      const existing = taggedByPost.get(row.post_id) ?? [];
+      existing.push(row.tagged_user);
+      taggedByPost.set(row.post_id, existing);
+    }
   }
 
   return posts.map((post) => ({
     ...post,
+    likeCount: likeCountByPost.get(post.id) ?? 0,
+    likedByCurrentUser: likedByViewer.has(post.id),
+    commentCount: commentCountByPost.get(post.id) ?? 0,
     taggedUsers: taggedByPost.get(post.id) ?? [],
   }));
 }
@@ -191,9 +154,7 @@ export async function getFeedPosts(viewerId?: string): Promise<FeedPost[]> {
   }
 
   const rows = (data ?? []) as unknown as PostRow[];
-  const withLikes = await attachLikeData(rows.map(mapRow), viewerId);
-  const withComments = await attachCommentCounts(withLikes);
-  return attachTaggedUsers(withComments);
+  return attachEngagementData(rows.map(mapRow), viewerId);
 }
 
 export async function getUserPosts(
@@ -211,9 +172,7 @@ export async function getUserPosts(
   }
 
   const rows = (data ?? []) as unknown as PostRow[];
-  const withLikes = await attachLikeData(rows.map(mapRow), viewerId);
-  const withComments = await attachCommentCounts(withLikes);
-  return attachTaggedUsers(withComments);
+  return attachEngagementData(rows.map(mapRow), viewerId);
 }
 
 // For the profile "Tagged" tab — posts where this user appears in post_tags,
@@ -238,9 +197,7 @@ export async function getTaggedPosts(
   }
 
   const rows = (data ?? []) as unknown as PostRow[];
-  const withLikes = await attachLikeData(rows.map(mapRow), viewerId);
-  const withComments = await attachCommentCounts(withLikes);
-  return attachTaggedUsers(withComments);
+  return attachEngagementData(rows.map(mapRow), viewerId);
 }
 
 export async function getPostById(
@@ -261,10 +218,8 @@ export async function getPostById(
   }
 
   const row = data as unknown as PostRow;
-  const [withLikes] = await attachLikeData([mapRow(row)], viewerId);
-  const [withComments] = await attachCommentCounts([withLikes]);
-  const [withTags] = await attachTaggedUsers([withComments]);
-  return withTags;
+  const [withEngagement] = await attachEngagementData([mapRow(row)], viewerId);
+  return withEngagement;
 }
 
 export type DeletePostResult = {

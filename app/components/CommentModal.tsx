@@ -10,7 +10,6 @@ import {
   getPostComments,
   type Comment,
 } from "@/lib/comments";
-import { getProfileById } from "@/lib/profiles";
 import Spinner from "@/app/components/Spinner";
 
 const HIGHLIGHT_DURATION_MS = 2000;
@@ -51,6 +50,8 @@ export default function CommentModal({
   postId,
   viewerId,
   viewerUsername,
+  viewerAvatarUrl,
+  viewerDisplayName,
   onClose,
   onCountChange,
   highlightCommentId,
@@ -58,6 +59,8 @@ export default function CommentModal({
   postId: number;
   viewerId: string | null;
   viewerUsername: string | null;
+  viewerAvatarUrl: string | null;
+  viewerDisplayName: string | null;
   onClose: () => void;
   onCountChange: (count: number) => void;
   highlightCommentId?: number;
@@ -65,10 +68,6 @@ export default function CommentModal({
   const router = useRouter();
   const [comments, setComments] = useState<Comment[]>([]);
   const [highlightedId, setHighlightedId] = useState<number | null>(null);
-  const [viewerAvatarUrl, setViewerAvatarUrl] = useState<string | null>(null);
-  const [viewerDisplayName, setViewerDisplayName] = useState<string | null>(
-    null
-  );
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [content, setContent] = useState("");
@@ -97,23 +96,11 @@ export default function CommentModal({
         if (!cancelled) setLoading(false);
       });
 
-    if (viewerId) {
-      getProfileById(viewerId)
-        .then((profile) => {
-          if (cancelled || !profile) return;
-          setViewerAvatarUrl(profile.avatarUrl);
-          setViewerDisplayName(profile.displayName);
-        })
-        .catch(() => {
-          // Optimistic-render detail only — not worth surfacing an error for.
-        });
-    }
-
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [postId, viewerId]);
+  }, [postId]);
 
   useEffect(() => {
     if (!highlightCommentId || loading) return;

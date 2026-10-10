@@ -29,18 +29,22 @@ export default async function PostPage({
     redirect("/login");
   }
 
-  const post = await getPostById(postId, user.id);
+  const supabase = await createClient();
+
+  // Independent of each other — fetched concurrently instead of one after
+  // the other.
+  const [post, { data: viewerProfile }] = await Promise.all([
+    getPostById(postId, user.id),
+    supabase
+      .from("profiles")
+      .select("username, avatar_url, display_name")
+      .eq("id", user.id)
+      .single(),
+  ]);
 
   if (!post) {
     notFound();
   }
-
-  const supabase = await createClient();
-  const { data: viewerProfile } = await supabase
-    .from("profiles")
-    .select("username")
-    .eq("id", user.id)
-    .single();
 
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-3 py-4 sm:max-w-xl sm:px-4 sm:py-8 lg:max-w-2xl">
@@ -49,6 +53,8 @@ export default async function PostPage({
         index={0}
         viewerId={user.id}
         viewerUsername={viewerProfile?.username ?? null}
+        viewerAvatarUrl={viewerProfile?.avatar_url ?? null}
+        viewerDisplayName={viewerProfile?.display_name ?? null}
         autoOpenCommentId={highlightCommentId}
       />
     </main>
