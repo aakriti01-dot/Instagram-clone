@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import type { FeedPost } from "@/lib/posts";
+import { getTaggedPosts, type FeedPost } from "@/lib/posts";
+import Spinner from "@/app/components/Spinner";
 
 function PostGrid({
   posts,
@@ -50,23 +51,43 @@ function PostGrid({
 
 export default function ProfileGrid({
   posts,
-  taggedPosts,
+  profileUserId,
+  viewerId,
   emptyTitle,
   emptyDescription,
 }: {
   posts: FeedPost[];
-  taggedPosts: FeedPost[];
+  profileUserId: string;
+  viewerId: string | null;
   emptyTitle: string;
   emptyDescription: string;
 }) {
   const [tab, setTab] = useState<"posts" | "tagged">("posts");
+  // null = not fetched yet. Once fetched, the result stays here for the rest
+  // of this page session, so switching tabs back and forth never re-fetches.
+  const [taggedPosts, setTaggedPosts] = useState<FeedPost[] | null>(null);
+  const [taggedLoading, setTaggedLoading] = useState(false);
+  const [taggedError, setTaggedError] = useState(false);
+
+  function handleTabChange(next: "posts" | "tagged") {
+    setTab(next);
+
+    if (next === "tagged" && taggedPosts === null && !taggedLoading) {
+      setTaggedLoading(true);
+      setTaggedError(false);
+      getTaggedPosts(profileUserId, viewerId ?? undefined)
+        .then((data) => setTaggedPosts(data))
+        .catch(() => setTaggedError(true))
+        .finally(() => setTaggedLoading(false));
+    }
+  }
 
   return (
     <>
       <div className="mt-10 flex items-center justify-center gap-10 border-t border-[var(--line)] sm:justify-start">
         <button
           type="button"
-          onClick={() => setTab("posts")}
+          onClick={() => handleTabChange("posts")}
           className={
             tab === "posts"
               ? "-mt-px border-t-2 border-[var(--ink)] pt-3 text-xs font-medium tracking-wide text-[var(--ink)] uppercase"
@@ -77,7 +98,7 @@ export default function ProfileGrid({
         </button>
         <button
           type="button"
-          onClick={() => setTab("tagged")}
+          onClick={() => handleTabChange("tagged")}
           className={
             tab === "tagged"
               ? "-mt-px border-t-2 border-[var(--ink)] pt-3 text-xs font-medium tracking-wide text-[var(--ink)] uppercase"
@@ -94,9 +115,24 @@ export default function ProfileGrid({
           emptyTitle={emptyTitle}
           emptyDescription={emptyDescription}
         />
+      ) : taggedLoading ? (
+        <p className="flex items-center justify-center gap-2 py-20 text-sm text-[var(--ink-soft)]">
+          <Spinner />
+          Loading tagged photos…
+        </p>
+      ) : taggedError ? (
+        <div className="flex flex-col items-center gap-2 py-20 text-center">
+          <p className="font-serif text-xl italic text-[var(--ink)]">
+            Something went wrong
+          </p>
+          <p className="max-w-xs text-sm text-[var(--ink-soft)]">
+            We couldn&apos;t load tagged photos right now. Please try again
+            shortly.
+          </p>
+        </div>
       ) : (
         <PostGrid
-          posts={taggedPosts}
+          posts={taggedPosts ?? []}
           emptyTitle="No tagged posts yet"
           emptyDescription="Photos this person is tagged in will appear here."
         />

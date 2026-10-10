@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/supabase-server";
 import { getProfileByUsername } from "@/lib/profiles";
-import { getUserPosts, getTaggedPosts } from "@/lib/posts";
+import { getUserPosts } from "@/lib/posts";
 import { getFollowCounts, isFollowing } from "@/lib/follows";
 import FollowButton from "@/app/components/FollowButton";
 import ProfileGrid from "@/app/components/ProfileGrid";
@@ -14,16 +14,16 @@ export default async function UserProfilePage({
 }) {
   const { username } = await params;
 
-  // Independent of each other — fetched concurrently instead of one after
-  // the other.
-  const [user, profile] = await Promise.all([
-    getCurrentUser(),
-    getProfileByUsername(username),
-  ]);
+  // Checked before any profile-specific query — an unauthenticated visitor
+  // is redirected immediately, without spending a Supabase round-trip on a
+  // profile lookup that's about to be discarded.
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");
   }
+
+  const profile = await getProfileByUsername(username);
 
   if (!profile) {
     notFound();
@@ -38,9 +38,11 @@ export default async function UserProfilePage({
   const displayName = profile.displayName;
   const bio = profile.bio;
   const avatarUrl = profile.avatarUrl;
-  const [posts, taggedPosts, followCounts, alreadyFollowing] = await Promise.all([
+  // Tagged posts aren't part of the initial visible content — the grid
+  // defaults to the Posts tab — so they're loaded client-side only if the
+  // Tagged tab is actually selected, rather than blocking this render.
+  const [posts, followCounts, alreadyFollowing] = await Promise.all([
     getUserPosts(profile.id, user.id),
-    getTaggedPosts(profile.id, user.id),
     getFollowCounts(profile.id),
     isFollowing(user.id, profile.id),
   ]);
@@ -66,7 +68,8 @@ export default async function UserProfilePage({
 
       <ProfileGrid
         posts={posts}
-        taggedPosts={taggedPosts}
+        profileUserId={profile.id}
+        viewerId={user.id}
         emptyTitle="No posts yet"
         emptyDescription="When they share photographs, they'll appear here."
       />

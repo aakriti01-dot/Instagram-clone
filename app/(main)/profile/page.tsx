@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, getCurrentUser } from "@/lib/supabase-server";
-import { getUserPosts, getTaggedPosts } from "@/lib/posts";
+import { getUserPosts } from "@/lib/posts";
 import { getFollowCounts } from "@/lib/follows";
 import ProfileMenu from "@/app/components/ProfileMenu";
 import ProfileGrid from "@/app/components/ProfileGrid";
@@ -30,9 +30,11 @@ export default async function ProfilePage() {
   const displayName = profile?.display_name ?? null;
   const bio = profile?.bio ?? null;
   const avatarUrl = profile?.avatar_url ?? null;
-  const [posts, taggedPosts, followCounts] = await Promise.all([
+  // Tagged posts aren't part of the initial visible content — the grid
+  // defaults to the Posts tab — so they're loaded client-side only if the
+  // Tagged tab is actually selected, rather than blocking this render.
+  const [posts, followCounts] = await Promise.all([
     getUserPosts(user.id, user.id),
-    getTaggedPosts(user.id, user.id),
     getFollowCounts(user.id),
   ]);
 
@@ -61,7 +63,8 @@ export default async function ProfilePage() {
 
       <ProfileGrid
         posts={posts}
-        taggedPosts={taggedPosts}
+        profileUserId={user.id}
+        viewerId={user.id}
         emptyTitle="No posts yet"
         emptyDescription="When you share photographs, they'll appear here."
       />
