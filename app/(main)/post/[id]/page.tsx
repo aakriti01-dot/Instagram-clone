@@ -43,7 +43,7 @@ export default async function PostPage({
     .single();
 
   return (
-    <main className="mx-auto w-full max-w-lg flex-1 px-3 py-4 sm:max-w-xl sm:px-4 sm:py-8">
+    <main className="mx-auto w-full max-w-lg flex-1 px-3 py-4 sm:max-w-xl sm:px-4 sm:py-8 lg:max-w-2xl">
       <PostCard
         post={post}
         index={0}

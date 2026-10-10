@@ -11,6 +11,7 @@ import {
   type Comment,
 } from "@/lib/comments";
 import { getProfileById } from "@/lib/profiles";
+import Spinner from "@/app/components/Spinner";
 
 const HIGHLIGHT_DURATION_MS = 2000;
 
@@ -247,7 +248,8 @@ export default function CommentModal({
 
         <div className="flex-1 overflow-y-auto px-4 py-3">
           {loading ? (
-            <p className="py-10 text-center text-sm text-[var(--ink-soft)]">
+            <p className="flex items-center justify-center gap-2 py-10 text-sm text-[var(--ink-soft)]">
+              <Spinner />
               Loading comments…
             </p>
           ) : loadError ? (

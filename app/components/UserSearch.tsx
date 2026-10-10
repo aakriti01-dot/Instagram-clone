@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { searchProfiles, type Profile } from "@/lib/profiles";
 import { SearchIcon, CloseIcon } from "@/app/components/icons";
+import Spinner from "@/app/components/Spinner";
 
 const DEBOUNCE_MS = 300;
 
@@ -100,7 +101,8 @@ export default function UserSearch({ viewerId }: { viewerId: string | null }) {
       )}
 
       {query.trim() && loading && (
-        <p className="py-10 text-center text-sm text-[var(--ink-soft)]">
+        <p className="flex items-center justify-center gap-2 py-10 text-sm text-[var(--ink-soft)]">
+          <Spinner />
           Searching…
         </p>
       )}

@@ -7,6 +7,7 @@ import { generateId } from "@/lib/uuid";
 import { PlusSquareIcon, CloseIcon } from "@/app/components/icons";
 import { searchProfiles, type Profile } from "@/lib/profiles";
 import { tagUsers } from "@/lib/postTags";
+import Spinner from "@/app/components/Spinner";
 
 const TAG_DEBOUNCE_MS = 300;
 
@@ -249,14 +250,31 @@ export default function CreatePostForm({ userId }: { userId: string }) {
             {selectedTags.map((profile) => (
               <span
                 key={profile.id}
-                className="flex items-center gap-1.5 rounded-full bg-[var(--powder-tint)] px-3 py-1.5 text-xs font-medium text-[var(--ink)]"
+                className="flex max-w-full items-center gap-2 rounded-full bg-[var(--powder-tint)] py-1 pr-3 pl-1 text-xs font-medium text-[var(--ink)]"
               >
-                @{profile.username}
+                {profile.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={profile.avatarUrl}
+                    alt=""
+                    className="h-5 w-5 shrink-0 rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--paper)] text-[10px] font-semibold text-[var(--ink)]">
+                    {profile.username.charAt(0).toUpperCase()}
+                  </span>
+                )}
+                <span
+                  title={`@${profile.username}`}
+                  className="min-w-0 max-w-[8rem] truncate"
+                >
+                  @{profile.username}
+                </span>
                 <button
                   type="button"
                   onClick={() => removeTag(profile.id)}
                   aria-label={`Remove ${profile.username}`}
-                  className="text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)]"
+                  className="shrink-0 text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)]"
                 >
                   <CloseIcon className="h-3 w-3" />
                 </button>
@@ -277,7 +295,8 @@ export default function CreatePostForm({ userId }: { userId: string }) {
         {tagQuery.trim() && (
           <div className="rounded-lg border border-[var(--line)] bg-[var(--paper)] p-1">
             {tagSearching ? (
-              <p className="px-3 py-2 text-sm text-[var(--ink-soft)]">
+              <p className="flex items-center justify-center gap-2 px-3 py-3 text-sm text-[var(--ink-soft)]">
+                <Spinner />
                 Searching…
               </p>
             ) : tagResults.length === 0 ? (
@@ -290,9 +309,26 @@ export default function CreatePostForm({ userId }: { userId: string }) {
                   key={profile.id}
                   type="button"
                   onClick={() => addTag(profile)}
-                  className="block w-full rounded-md px-3 py-2 text-left text-sm font-medium text-[var(--ink)] transition-colors hover:bg-[var(--cream)]"
+                  className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-[var(--cream)]"
                 >
-                  @{profile.username}
+                  {profile.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={profile.avatarUrl}
+                      alt=""
+                      className="h-7 w-7 shrink-0 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--powder-tint)] text-xs font-semibold text-[var(--ink)]">
+                      {profile.username.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                  <span
+                    title={`@${profile.username}`}
+                    className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--ink)]"
+                  >
+                    @{profile.username}
+                  </span>
                 </button>
               ))
             )}
@@ -309,8 +345,11 @@ export default function CreatePostForm({ userId }: { userId: string }) {
       <button
         type="submit"
         disabled={loading}
-        className="rounded-full bg-[var(--ink)] px-5 py-2.5 text-sm font-medium text-[var(--cream)] transition-opacity disabled:opacity-60"
+        className="flex items-center justify-center gap-2 rounded-full bg-[var(--ink)] px-5 py-2.5 text-sm font-medium text-[var(--cream)] transition-opacity disabled:opacity-60"
       >
+        {loading && (
+          <Spinner className="h-4 w-4 border-2 border-[var(--cream)]/30 border-t-[var(--cream)]" />
+        )}
         {loading ? "Sharing…" : "Share"}
       </button>
     </form>

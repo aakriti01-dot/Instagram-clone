@@ -81,7 +81,7 @@ export default async function ActivityPage() {
     .eq("id", user.id);
 
   return (
-    <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6 sm:max-w-xl sm:px-6 sm:py-8">
+    <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6 sm:max-w-xl sm:px-6 sm:py-8 lg:max-w-2xl">
       <h1 className="mb-4 font-serif text-2xl italic text-[var(--ink)]">
         Activity
       </h1>

@@ -27,7 +27,7 @@ export default async function Home() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-lg flex-1 px-3 py-4 sm:max-w-xl sm:px-4 sm:py-8">
+    <main className="mx-auto w-full max-w-lg flex-1 px-3 py-4 sm:max-w-xl sm:px-4 sm:py-8 lg:max-w-2xl">
       {loadError ? (
         <div className="flex flex-col items-center gap-3 px-6 py-28 text-center">
           <span className="font-serif text-2xl italic text-[var(--ink)]">

@@ -28,7 +28,7 @@ function PostGrid({
   }
 
   return (
-    <div className="mt-1 grid grid-cols-3 gap-0.5 sm:gap-1">
+    <div className="mt-1 grid grid-cols-3 gap-0.5 sm:gap-1 lg:grid-cols-4 lg:gap-2">
       {posts.map((post) => (
         <Link
           key={post.id}
@@ -40,7 +40,7 @@ function PostGrid({
             alt={`Photo shared by ${post.username}`}
             fill
             className="object-cover transition-opacity hover:opacity-90"
-            sizes="(min-width: 640px) 33vw, 33vw"
+            sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 33vw"
           />
         </Link>
       ))}

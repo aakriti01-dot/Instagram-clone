@@ -6,6 +6,7 @@ import { CloseIcon } from "@/app/components/icons";
 import { searchProfiles, type Profile } from "@/lib/profiles";
 import { tagUsers, untagUser } from "@/lib/postTags";
 import type { TaggedUser } from "@/lib/posts";
+import Spinner from "@/app/components/Spinner";
 
 const DEBOUNCE_MS = 300;
 
@@ -144,7 +145,8 @@ export default function TagPeopleModal({
           {query.trim() && (
             <div className="mb-4">
               {loading ? (
-                <p className="py-3 text-center text-sm text-[var(--ink-soft)]">
+                <p className="flex items-center justify-center gap-2 py-3 text-sm text-[var(--ink-soft)]">
+                  <Spinner />
                   Searching…
                 </p>
               ) : results.length === 0 ? (
@@ -173,7 +175,10 @@ export default function TagPeopleModal({
                             {resultInitial(profile.displayName || profile.username)}
                           </span>
                         )}
-                        <span className="text-sm font-medium text-[var(--ink)]">
+                        <span
+                          title={`@${profile.username}`}
+                          className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--ink)]"
+                        >
                           @{profile.username}
                         </span>
                       </button>
@@ -200,7 +205,8 @@ export default function TagPeopleModal({
                 >
                   <Link
                     href={`/profile/${user.username}`}
-                    className="text-sm font-medium text-[var(--ink)] hover:underline"
+                    title={`@${user.username}`}
+                    className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--ink)] hover:underline"
                   >
                     @{user.username}
                   </Link>
@@ -208,7 +214,7 @@ export default function TagPeopleModal({
                     type="button"
                     onClick={() => handleRemove(user.id)}
                     disabled={pendingId === user.id}
-                    className="text-xs text-[var(--ink-soft)] transition-colors hover:text-[var(--blush)] disabled:opacity-60"
+                    className="shrink-0 text-xs text-[var(--ink-soft)] transition-colors hover:text-[var(--blush)] disabled:opacity-60"
                   >
                     {pendingId === user.id ? "Removing…" : "Remove"}
                   </button>

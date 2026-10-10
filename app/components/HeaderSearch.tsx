@@ -6,6 +6,7 @@ import { searchProfiles, type Profile } from "@/lib/profiles";
 import { getFollowingIds } from "@/lib/follows";
 import { SearchIcon } from "@/app/components/icons";
 import FollowButton from "@/app/components/FollowButton";
+import Spinner from "@/app/components/Spinner";
 
 const DEBOUNCE_MS = 300;
 
@@ -80,7 +81,7 @@ export default function HeaderSearch({ viewerId }: { viewerId: string | null }) 
   const showPanel = open && trimmed.length > 0;
 
   return (
-    <div ref={containerRef} className="relative w-full max-w-xs">
+    <div ref={containerRef} className="relative w-full max-w-xs lg:max-w-sm xl:max-w-md">
       <div className="relative">
         <SearchIcon className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-[var(--ink-soft)]" />
         <input
@@ -96,7 +97,8 @@ export default function HeaderSearch({ viewerId }: { viewerId: string | null }) 
       {showPanel && (
         <div className="absolute top-full left-0 z-30 mt-2 max-h-96 w-full min-w-[22rem] overflow-y-auto rounded-2xl border border-[var(--line)] bg-[var(--paper)] shadow-[0_8px_24px_rgba(37,35,33,0.12)]">
           {loading ? (
-            <p className="px-4 py-6 text-center text-sm text-[var(--ink-soft)]">
+            <p className="flex items-center justify-center gap-2 px-4 py-6 text-sm text-[var(--ink-soft)]">
+              <Spinner />
               Searching…
             </p>
           ) : results.length === 0 ? (

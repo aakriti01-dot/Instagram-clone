@@ -28,10 +28,10 @@ export default function ProfileHeader({
         <img
           src={avatarUrl}
           alt={`${username}'s profile picture`}
-          className="h-20 w-20 shrink-0 rounded-full object-cover sm:h-36 sm:w-36"
+          className="h-20 w-20 shrink-0 rounded-full object-cover sm:h-36 sm:w-36 lg:h-40 lg:w-40"
         />
       ) : (
-        <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-[var(--powder-tint)] font-serif text-3xl text-[var(--ink)] sm:h-36 sm:w-36 sm:text-5xl">
+        <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-[var(--powder-tint)] font-serif text-3xl text-[var(--ink)] sm:h-36 sm:w-36 sm:text-5xl lg:h-40 lg:w-40">
           {initial}
         </div>
       )}

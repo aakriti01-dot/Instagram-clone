@@ -10,7 +10,7 @@ export default async function CreatePage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-lg flex-1 px-6 py-10 sm:max-w-xl sm:py-14">
+    <main className="mx-auto w-full max-w-lg flex-1 px-6 py-10 sm:max-w-xl sm:py-14 lg:max-w-2xl">
       <div className="mb-8 text-center">
         <h1 className="font-serif text-2xl italic text-[var(--ink)]">
           New post

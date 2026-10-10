@@ -37,7 +37,7 @@ export default async function ProfilePage() {
   ]);
 
   return (
-    <main className="mx-auto w-full max-w-lg flex-1 px-6 py-10 sm:max-w-3xl sm:px-8 sm:py-14">
+    <main className="mx-auto w-full max-w-lg flex-1 px-6 py-10 sm:max-w-3xl sm:px-8 sm:py-14 lg:max-w-4xl xl:max-w-5xl">
       <ProfileHeader
         avatarUrl={avatarUrl}
         username={username}
