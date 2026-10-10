@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CloseIcon } from "@/app/components/icons";
 import {
@@ -265,15 +266,20 @@ export default function CommentModal({
                   }`}
                 >
                   <div className="flex items-start gap-3">
-                    <CommentAvatar
-                      avatarUrl={comment.avatarUrl}
-                      name={comment.displayName || comment.username}
-                    />
+                    <Link href={`/profile/${comment.username}`} className="shrink-0">
+                      <CommentAvatar
+                        avatarUrl={comment.avatarUrl}
+                        name={comment.displayName || comment.username}
+                      />
+                    </Link>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm leading-relaxed break-words text-[var(--ink)]">
-                        <span className="mr-1.5 font-medium">
+                        <Link
+                          href={`/profile/${comment.username}`}
+                          className="mr-1.5 font-medium hover:underline"
+                        >
                           {comment.username}
-                        </span>
+                        </Link>
                         {comment.content}
                       </p>
                       <div className="mt-1 flex items-center gap-3">
@@ -315,15 +321,20 @@ export default function CommentModal({
                               : ""
                           }`}
                         >
-                          <CommentAvatar
-                            avatarUrl={reply.avatarUrl}
-                            name={reply.displayName || reply.username}
-                          />
+                          <Link href={`/profile/${reply.username}`} className="shrink-0">
+                            <CommentAvatar
+                              avatarUrl={reply.avatarUrl}
+                              name={reply.displayName || reply.username}
+                            />
+                          </Link>
                           <div className="min-w-0 flex-1">
                             <p className="text-sm leading-relaxed break-words text-[var(--ink)]">
-                              <span className="mr-1.5 font-medium">
+                              <Link
+                                href={`/profile/${reply.username}`}
+                                className="mr-1.5 font-medium hover:underline"
+                              >
                                 {reply.username}
-                              </span>
+                              </Link>
                               {reply.content}
                             </p>
                             <div className="mt-1 flex items-center gap-3">

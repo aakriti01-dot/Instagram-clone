@@ -42,39 +42,44 @@ export default function PostCard({
   return (
     <article className="overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--paper)] shadow-[0_1px_3px_rgba(38,34,32,0.06)]">
       <div className="flex items-center gap-3 px-4 py-3">
-        {post.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={post.avatarUrl}
-            alt=""
-            className="h-9 w-9 shrink-0 rounded-full object-cover"
-          />
-        ) : (
-          <span
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-serif text-sm text-[var(--ink)]"
-            style={{ backgroundColor: accentTint }}
-          >
-            {initials(post.username)}
-          </span>
-        )}
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-[var(--ink)]">
-            {post.username}
-          </p>
-          {post.location && (
-            <p
-              title={post.location}
-              className="truncate text-xs text-[var(--ink-soft)]"
+        <Link
+          href={`/profile/${post.username}`}
+          className="flex min-w-0 flex-1 items-center gap-3"
+        >
+          {post.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={post.avatarUrl}
+              alt=""
+              className="h-9 w-9 shrink-0 rounded-full object-cover"
+            />
+          ) : (
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-serif text-sm text-[var(--ink)]"
+              style={{ backgroundColor: accentTint }}
             >
-              {post.location}
+              {initials(post.username)}
+            </span>
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-[var(--ink)]">
+              {post.username}
             </p>
-          )}
-          {date && (
-            <time className="block text-xs text-[var(--ink-soft)]">
-              {date}
-            </time>
-          )}
-        </div>
+            {post.location && (
+              <p
+                title={post.location}
+                className="truncate text-xs text-[var(--ink-soft)]"
+              >
+                {post.location}
+              </p>
+            )}
+            {date && (
+              <time className="block text-xs text-[var(--ink-soft)]">
+                {date}
+              </time>
+            )}
+          </div>
+        </Link>
         {viewerId === post.userId ? (
           <PostMenu
             postId={post.id}
@@ -130,7 +135,12 @@ export default function PostCard({
       <div className="px-4 pt-2 pb-4">
         {post.caption && (
           <p className="text-sm leading-relaxed break-words text-[var(--ink)]">
-            <span className="mr-1.5 font-medium">{post.username}</span>
+            <Link
+              href={`/profile/${post.username}`}
+              className="mr-1.5 font-medium hover:underline"
+            >
+              {post.username}
+            </Link>
             {post.caption}
           </p>
         )}

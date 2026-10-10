@@ -30,7 +30,7 @@ export default function SplashPage() {
 
   return (
     <div className="flex flex-1 items-center justify-center">
-      <span className="animate-[splash-fade_500ms_ease-in-out] font-serif text-4xl italic tracking-tight text-[var(--ink)] sm:text-5xl motion-reduce:animate-none">
+      <span className="gradient-text animate-[splash-fade_500ms_ease-in-out] font-serif text-4xl italic tracking-tight sm:text-5xl motion-reduce:animate-none">
         FrontierGram
       </span>
     </div>

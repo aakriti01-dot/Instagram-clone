@@ -59,7 +59,7 @@ export default async function MainLayout({
         <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6 lg:px-8">
           <Link
             href="/feed"
-            className="shrink-0 font-serif text-2xl italic tracking-tight text-[var(--ink)]"
+            className="gradient-text shrink-0 font-serif text-2xl italic tracking-tight"
           >
             FrontierGram
           </Link>

@@ -1,20 +1,39 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #252321;
+  /* Base surfaces and text — warm cream throughout, never stark white. */
+  --cream: #F7F1E8;
+  --paper: #FFFCF7;
+  --beige: #EFE5D9;
+  --beige-tint: #F6EFE6;
 
-  --cream: #F8F7F3;
-  --paper: #FFFFFF;
-  --ink: #252321;
-  --ink-soft: #77736D;
-  --line: #E5E1D9;
+  --ink: #292521;
+  --ink-soft: #82776E;
+  --line: #E4D8CC;
 
-  --blush: #CFAFA8;
-  --blush-tint: #F2E7E3;
+  /* Instagram-inspired accent family — vibrant, used sparingly against the
+     calm cream/ivory surfaces above rather than as a dominant background. */
+  --accent: #C13584;
+  --accent-tint: #F8E3EF;
+  --accent-purple: #833AB4;
+  --accent-orange: #F77737;
+  --accent-gradient: linear-gradient(
+    135deg,
+    var(--accent-orange),
+    var(--accent),
+    var(--accent-purple)
+  );
 
-  --powder: #AEBFC5;
-  --powder-tint: #E7EEF0;
+  --background: var(--cream);
+  --foreground: var(--ink);
+
+  /* Aliases so every existing var(--blush)/var(--powder) usage across the
+     app resolves to the new palette from this one place, rather than
+     renaming each call site. */
+  --blush: var(--accent);
+  --blush-tint: var(--accent-tint);
+  --powder: var(--beige);
+  --powder-tint: var(--beige-tint);
 }
 
 @theme inline {
@@ -28,6 +47,15 @@
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+/* Reserved for the FrontierGram wordmark — a tasteful, limited use of the
+   gradient accent for branding, not for general UI chrome. */
+.gradient-text {
+  background: var(--accent-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
 }
 
 @keyframes splash-fade {
