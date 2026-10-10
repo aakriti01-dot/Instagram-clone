@@ -1,6 +1,11 @@
 import { supabase } from "@/lib/supabase";
 import { createClient } from "@/lib/supabase-browser";
 
+export type TaggedUser = {
+  id: string;
+  username: string;
+};
+
 export type FeedPost = {
   id: number;
   userId: string;
@@ -12,6 +17,7 @@ export type FeedPost = {
   likeCount: number;
   likedByCurrentUser: boolean;
   commentCount: number;
+  taggedUsers: TaggedUser[];
 };
 
 type PostRow = {
@@ -35,13 +41,21 @@ type CommentCountRow = {
   post_id: number;
 };
 
+type PostTagRow = {
+  post_id: number;
+  tagged_user: { id: string; username: string } | null;
+};
+
 type BasePost = Omit<
   FeedPost,
-  "likeCount" | "likedByCurrentUser" | "commentCount"
+  "likeCount" | "likedByCurrentUser" | "commentCount" | "taggedUsers"
 >;
 type WithLikes = BasePost & {
   likeCount: number;
   likedByCurrentUser: boolean;
+};
+type WithComments = WithLikes & {
+  commentCount: number;
 };
 
 function mapRow(row: PostRow): BasePost {
@@ -96,7 +110,9 @@ async function attachLikeData(
 
 // Same batching approach for comment counts: one request for all posts on
 // the page, not one per post.
-async function attachCommentCounts(posts: WithLikes[]): Promise<FeedPost[]> {
+async function attachCommentCounts(
+  posts: WithLikes[]
+): Promise<WithComments[]> {
   if (posts.length === 0) {
     return [];
   }
@@ -124,6 +140,46 @@ async function attachCommentCounts(posts: WithLikes[]): Promise<FeedPost[]> {
   }));
 }
 
+// Same batching approach again for tags — one request for all posts on the
+// page rather than one per post. Tagging a user is a post-owner-only action
+// (enforced by RLS, not just this read path), but anyone can see who's
+// tagged, same visibility as likes/comments.
+async function attachTaggedUsers(posts: WithComments[]): Promise<FeedPost[]> {
+  if (posts.length === 0) {
+    return [];
+  }
+
+  const postIds = posts.map((post) => post.id);
+  const { data, error } = await supabase
+    .from("post_tags")
+    .select("post_id, tagged_user:profiles!tagged_user_id(id, username)")
+    .in("post_id", postIds);
+
+  // Tags are an additive enrichment, not core post data (unlike likes/
+  // comments) — if this lookup fails for any reason, including the
+  // post_tags table not existing yet in an environment where this migration
+  // hasn't been run, posts should still render normally with no tags rather
+  // than taking the whole feed/profile/post page down with them.
+  if (error) {
+    return posts.map((post) => ({ ...post, taggedUsers: [] }));
+  }
+
+  const rows = (data ?? []) as unknown as PostTagRow[];
+  const taggedByPost = new Map<number, TaggedUser[]>();
+
+  for (const row of rows) {
+    if (!row.tagged_user) continue;
+    const existing = taggedByPost.get(row.post_id) ?? [];
+    existing.push(row.tagged_user);
+    taggedByPost.set(row.post_id, existing);
+  }
+
+  return posts.map((post) => ({
+    ...post,
+    taggedUsers: taggedByPost.get(post.id) ?? [],
+  }));
+}
+
 export async function getFeedPosts(viewerId?: string): Promise<FeedPost[]> {
   const { data, error } = await supabase
     .from("posts")
@@ -136,7 +192,8 @@ export async function getFeedPosts(viewerId?: string): Promise<FeedPost[]> {
 
   const rows = (data ?? []) as unknown as PostRow[];
   const withLikes = await attachLikeData(rows.map(mapRow), viewerId);
-  return attachCommentCounts(withLikes);
+  const withComments = await attachCommentCounts(withLikes);
+  return attachTaggedUsers(withComments);
 }
 
 export async function getUserPosts(
@@ -155,7 +212,35 @@ export async function getUserPosts(
 
   const rows = (data ?? []) as unknown as PostRow[];
   const withLikes = await attachLikeData(rows.map(mapRow), viewerId);
-  return attachCommentCounts(withLikes);
+  const withComments = await attachCommentCounts(withLikes);
+  return attachTaggedUsers(withComments);
+}
+
+// For the profile "Tagged" tab — posts where this user appears in post_tags,
+// not posts they authored. Reuses the exact same FeedPost pipeline so the
+// grid can render it identically to the "Posts" tab.
+export async function getTaggedPosts(
+  userId: string,
+  viewerId?: string
+): Promise<FeedPost[]> {
+  const { data, error } = await supabase
+    .from("posts")
+    .select(`${POST_COLUMNS}, post_tags!inner(tagged_user_id)`)
+    .eq("post_tags.tagged_user_id", userId)
+    .order("created_at", { ascending: false });
+
+  // Same reasoning as attachTaggedUsers: this entire query depends on
+  // post_tags existing. Before that migration runs (or if it ever fails for
+  // any other reason), the Tagged tab should just show its empty state
+  // rather than breaking the whole profile page.
+  if (error) {
+    return [];
+  }
+
+  const rows = (data ?? []) as unknown as PostRow[];
+  const withLikes = await attachLikeData(rows.map(mapRow), viewerId);
+  const withComments = await attachCommentCounts(withLikes);
+  return attachTaggedUsers(withComments);
 }
 
 export async function getPostById(
@@ -178,7 +263,8 @@ export async function getPostById(
   const row = data as unknown as PostRow;
   const [withLikes] = await attachLikeData([mapRow(row)], viewerId);
   const [withComments] = await attachCommentCounts([withLikes]);
-  return withComments;
+  const [withTags] = await attachTaggedUsers([withComments]);
+  return withTags;
 }
 
 export type DeletePostResult = {

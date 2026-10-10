@@ -6,6 +6,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-browser";
 
+// Set for environments where a demo account has been created (see README /
+// project notes) — a dedicated, low-privilege account meant to be public,
+// not a real credential. Left unset, the demo button simply doesn't render.
+const DEMO_EMAIL = process.env.NEXT_PUBLIC_DEMO_EMAIL;
+const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD;
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -13,15 +19,14 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function signInWith(emailValue: string, passwordValue: string) {
     setError(null);
     setLoading(true);
 
     const supabase = createClient();
     const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+      email: emailValue,
+      password: passwordValue,
     });
 
     if (signInError) {
@@ -32,6 +37,16 @@ export default function LoginPage() {
 
     router.push("/feed");
     router.refresh();
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await signInWith(email, password);
+  }
+
+  async function handleDemoLogin() {
+    if (!DEMO_EMAIL || !DEMO_PASSWORD) return;
+    await signInWith(DEMO_EMAIL, DEMO_PASSWORD);
   }
 
   return (
@@ -140,6 +155,17 @@ export default function LoginPage() {
             {loading ? "Signing in…" : "Sign in"}
           </button>
         </form>
+
+        {DEMO_EMAIL && DEMO_PASSWORD && (
+          <button
+            type="button"
+            onClick={handleDemoLogin}
+            disabled={loading}
+            className="mt-3 rounded-full border border-[var(--line)] px-6 py-3 text-base font-medium text-[var(--ink)] transition-colors hover:border-[var(--blush)] disabled:opacity-60"
+          >
+            Try the demo
+          </button>
+        )}
 
         <p className="mt-6 text-center text-sm text-[var(--ink-soft)]">
           New to FrontierGram?{" "}

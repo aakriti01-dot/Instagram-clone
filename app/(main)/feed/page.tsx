@@ -1,12 +1,10 @@
 import PostCard from "@/app/components/PostCard";
 import { getFeedPosts } from "@/lib/posts";
-import { createClient } from "@/lib/supabase-server";
+import { createClient, getCurrentUser } from "@/lib/supabase-server";
 
 export default async function Home() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   const viewerId = user?.id ?? null;
 
   let viewerUsername: string | null = null;
@@ -29,7 +27,7 @@ export default async function Home() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-lg flex-1 sm:max-w-xl sm:px-4 sm:py-8">
+    <main className="mx-auto w-full max-w-lg flex-1 px-3 py-4 sm:max-w-xl sm:px-4 sm:py-8">
       {loadError ? (
         <div className="flex flex-col items-center gap-3 px-6 py-28 text-center">
           <span className="font-serif text-2xl italic text-[var(--ink)]">
@@ -50,7 +48,7 @@ export default async function Home() {
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-0 sm:gap-6">
+        <div className="flex flex-col gap-4 sm:gap-6">
           {posts.map((post, index) => (
             <PostCard
               key={post.id}

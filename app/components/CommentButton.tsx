@@ -10,14 +10,22 @@ export default function CommentButton({
   viewerId,
   viewerUsername,
   initialCount,
+  autoOpenCommentId,
 }: {
   postId: number;
   viewerId: string | null;
   viewerUsername: string | null;
   initialCount: number;
+  autoOpenCommentId?: number;
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  // Arriving from a comment/reply notification link (?comment=<id>) — open
+  // straight into the thread instead of making the user click Comment first.
+  // A lazy initializer rather than an effect, since this only ever needs to
+  // reflect the id present on first render, not react to later changes.
+  const [open, setOpen] = useState(
+    () => autoOpenCommentId !== undefined && !!viewerId
+  );
   const [count, setCount] = useState(initialCount);
 
   function handleClick() {
@@ -50,6 +58,7 @@ export default function CommentButton({
           viewerUsername={viewerUsername}
           onClose={() => setOpen(false)}
           onCountChange={setCount}
+          highlightCommentId={autoOpenCommentId}
         />
       )}
     </>

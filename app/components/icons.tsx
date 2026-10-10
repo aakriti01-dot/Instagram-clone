@@ -36,11 +36,11 @@ export function CommentIcon({ className }: IconProps) {
   );
 }
 
-export function ShareIcon({ className }: IconProps) {
+export function TagIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
-      <path d="M3 11.5 20.5 3 15 20.5l-4.2-6.8L3 11.5Z" />
-      <path d="M10.8 13.7 16 8.5" />
+      <path d="M12.6 3.5H6.2A2.7 2.7 0 0 0 3.5 6.2v6.4c0 .7.3 1.4.8 1.9l8.4 8.4a2.7 2.7 0 0 0 3.8 0l6.4-6.4a2.7 2.7 0 0 0 0-3.8l-8.4-8.4a2.7 2.7 0 0 0-1.9-.8Z" />
+      <circle cx="8.3" cy="8.3" r="1.4" />
     </svg>
   );
 }

@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import BottomNav from "@/app/components/BottomNav";
 import HeaderSearch from "@/app/components/HeaderSearch";
-import { createClient } from "@/lib/supabase-server";
-import { getActivity } from "@/lib/notifications";
+import { createClient, getCurrentUser } from "@/lib/supabase-server";
+import { getUnreadActivityCount as getUnreadActivityCountQuery } from "@/lib/notifications";
 import {
   HeartIcon,
   HomeIcon,
@@ -20,21 +20,16 @@ async function getUnreadActivityCount(
 ): Promise<number> {
   if (!userId) return 0;
 
-  const [activity, profileResult] = await Promise.all([
-    getActivity(userId),
-    supabase
-      .from("profiles")
-      .select("last_seen_activity_at")
-      .eq("id", userId)
-      .single(),
-  ]);
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("last_seen_activity_at")
+    .eq("id", userId)
+    .single();
 
-  const lastSeen = profileResult.data?.last_seen_activity_at;
-  const lastSeenMs = lastSeen ? new Date(lastSeen).getTime() : 0;
-
-  return activity.filter(
-    (item) => new Date(item.createdAt).getTime() > lastSeenMs
-  ).length;
+  return getUnreadActivityCountQuery(
+    userId,
+    profile?.last_seen_activity_at ?? null
+  );
 }
 
 function NotificationBadge({ count }: { count: number }) {
@@ -53,9 +48,7 @@ export default async function MainLayout({
   children: ReactNode;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   const viewerId = user?.id ?? null;
 
   const unreadCount = await getUnreadActivityCount(supabase, viewerId);

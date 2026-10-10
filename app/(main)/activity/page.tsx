@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase-server";
+import { createClient, getCurrentUser } from "@/lib/supabase-server";
 import { getActivity, type ActivityActor } from "@/lib/notifications";
 import FollowButton from "@/app/components/FollowButton";
 
@@ -58,14 +58,13 @@ function isWithinWelcomeWindow(createdAt: string | undefined): boolean {
 }
 
 export default async function ActivityPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");
   }
+
+  const supabase = await createClient();
 
   const [activity, profileResult] = await Promise.all([
     getActivity(user.id),
@@ -165,7 +164,11 @@ export default async function ActivityPage() {
                 item.type === "comment" ||
                 item.type === "reply") && (
                 <Link
-                  href={`/post/${item.post.id}`}
+                  href={
+                    item.type === "comment" || item.type === "reply"
+                      ? `/post/${item.post.id}?comment=${item.commentId}`
+                      : `/post/${item.post.id}`
+                  }
                   className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md bg-[var(--cream)]"
                 >
                   <Image

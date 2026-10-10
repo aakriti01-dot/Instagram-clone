@@ -1,8 +1,11 @@
+import Link from "next/link";
 import type { FeedPost } from "@/lib/posts";
-import { KebabIcon, ShareIcon } from "@/app/components/icons";
+import { KebabIcon } from "@/app/components/icons";
 import LikeButton from "@/app/components/LikeButton";
 import CommentButton from "@/app/components/CommentButton";
 import PostMenu from "@/app/components/PostMenu";
+import PostImage from "@/app/components/PostImage";
+import TagPeopleButton from "@/app/components/TagPeopleButton";
 
 function initials(username: string) {
   return username.charAt(0).toUpperCase();
@@ -21,17 +24,19 @@ export default function PostCard({
   index,
   viewerId,
   viewerUsername,
+  autoOpenCommentId,
 }: {
   post: FeedPost;
   index: number;
   viewerId: string | null;
   viewerUsername: string | null;
+  autoOpenCommentId?: number;
 }) {
   const accentTint = index % 2 === 0 ? "var(--blush-tint)" : "var(--powder-tint)";
   const date = formatDate(post.createdAt);
 
   return (
-    <article className="border-b border-[var(--line)] bg-[var(--paper)] sm:rounded-2xl sm:border sm:border-[var(--line)] sm:shadow-[0_1px_3px_rgba(38,34,32,0.06)]">
+    <article className="overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--paper)] shadow-[0_1px_3px_rgba(38,34,32,0.06)]">
       <div className="flex items-center gap-3 px-4 py-3">
         {post.avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -79,12 +84,10 @@ export default function PostCard({
       <div className="bg-[var(--cream)]">
         {/* Real, unknown-dimension uploads: a plain img preserves natural
             aspect ratio without the distortion risk of a fixed box. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <PostImage
           src={post.imageUrl}
           alt={`Photo shared by ${post.username}`}
-          loading={index === 0 ? "eager" : "lazy"}
-          className="h-auto w-full"
+          priority={index === 0}
         />
       </div>
 
@@ -100,15 +103,14 @@ export default function PostCard({
           viewerId={viewerId}
           viewerUsername={viewerUsername}
           initialCount={post.commentCount}
+          autoOpenCommentId={autoOpenCommentId}
         />
-        <button
-          type="button"
-          aria-label="Share"
-          title="Share"
-          className="text-[var(--ink)] transition-colors hover:text-[var(--blush)]"
-        >
-          <ShareIcon className="h-[22px] w-[22px]" />
-        </button>
+        <TagPeopleButton
+          postId={post.id}
+          viewerId={viewerId}
+          isOwner={viewerId === post.userId}
+          initialTaggedUsers={post.taggedUsers}
+        />
       </div>
 
       <div className="px-4 pt-2 pb-4">
@@ -116,6 +118,22 @@ export default function PostCard({
           <p className="text-sm leading-relaxed break-words text-[var(--ink)]">
             <span className="mr-1.5 font-medium">{post.username}</span>
             {post.caption}
+          </p>
+        )}
+        {post.taggedUsers.length > 0 && (
+          <p className="mt-1 text-xs text-[var(--ink-soft)]">
+            Tagged:{" "}
+            {post.taggedUsers.map((user, index) => (
+              <span key={user.id}>
+                <Link
+                  href={`/profile/${user.username}`}
+                  className="font-medium text-[var(--ink)] hover:underline"
+                >
+                  @{user.username}
+                </Link>
+                {index < post.taggedUsers.length - 1 ? ", " : ""}
+              </span>
+            ))}
           </p>
         )}
       </div>

@@ -28,6 +28,7 @@ export type ActivityItem =
       createdAt: string;
       actor: ActivityActor;
       post: { id: number; imageUrl: string };
+      commentId: number;
       content: string;
     }
   | {
@@ -36,6 +37,7 @@ export type ActivityItem =
       createdAt: string;
       actor: ActivityActor;
       post: { id: number; imageUrl: string };
+      commentId: number;
       content: string;
     };
 
@@ -89,6 +91,92 @@ type ReplyRow = {
 
 const ACTIVITY_LIMIT = 50;
 const PER_SOURCE_LIMIT = 30;
+const EPOCH_ISO = new Date(0).toISOString();
+
+// A count-only mirror of getActivity()'s eligibility rules (same tables,
+// same self-exclusion, same top-level-only comment filter), used for the
+// header badge so it isn't paying to fetch full rows — avatars, post
+// images, comment text — on every single page load just to produce a
+// number. head:true requests return zero row payload; the `created_at`
+// cutoff is pushed into the query itself instead of fetched-then-filtered
+// in JS. Known minor limitation: unlike getActivity(), this doesn't defend
+// against a duplicate like row inflating the count by one — an accepted
+// trade-off for a lightweight approximate badge, not the real activity list.
+export async function getUnreadActivityCount(
+  viewerId: string,
+  lastSeenIso: string | null
+): Promise<number> {
+  const since = lastSeenIso ?? EPOCH_ISO;
+
+  const [followsResult, likesResult, commentsResult, repliesCount] =
+    await Promise.all([
+      supabase
+        .from("follows")
+        .select("id", { count: "exact", head: true })
+        .eq("followed_id", viewerId)
+        .gt("created_at", since),
+      supabase
+        .from("likes")
+        .select("id, post:posts!inner(user_id)", {
+          count: "exact",
+          head: true,
+        })
+        .eq("post.user_id", viewerId)
+        .neq("user_id", viewerId)
+        .gt("created_at", since),
+      supabase
+        .from("comments")
+        .select("id, post:posts!inner(user_id)", {
+          count: "exact",
+          head: true,
+        })
+        .is("parent_id", null)
+        .eq("post.user_id", viewerId)
+        .neq("user_id", viewerId)
+        .gt("created_at", since),
+      getUnreadReplyCount(viewerId, since),
+    ]);
+
+  if (followsResult.error) throw followsResult.error;
+  if (likesResult.error) throw likesResult.error;
+  if (commentsResult.error) throw commentsResult.error;
+
+  return (
+    (followsResult.count ?? 0) +
+    (likesResult.count ?? 0) +
+    (commentsResult.count ?? 0) +
+    repliesCount
+  );
+}
+
+async function getUnreadReplyCount(
+  viewerId: string,
+  since: string
+): Promise<number> {
+  const { data: ownedComments, error: ownedError } = await supabase
+    .from("comments")
+    .select("id")
+    .eq("user_id", viewerId)
+    .is("parent_id", null);
+
+  if (ownedError) throw ownedError;
+
+  const ownedIds = (ownedComments ?? []).map(
+    (row) => (row as { id: number }).id
+  );
+  if (ownedIds.length === 0) return 0;
+
+  const { count, error } = await supabase
+    .from("comments")
+    .select("id", { count: "exact", head: true })
+    .in("parent_id", ownedIds)
+    .neq("user_id", viewerId)
+    .gt("created_at", since);
+
+  if (error) throw error;
+
+  return count ?? 0;
+}
 
 // Reply notifications go to the owner of the PARENT comment, not the post
 // owner — a self-referencing lookup, which PostgREST's embedding can't
@@ -130,6 +218,7 @@ async function getReplyItems(viewerId: string): Promise<ActivityItem[]> {
       createdAt: row.created_at,
       actor: mapActor(row.replier),
       post: { id: row.post!.id, imageUrl: row.post!.image_url },
+      commentId: row.id,
       content: row.content,
     }));
 }
@@ -225,6 +314,7 @@ export async function getActivity(viewerId: string): Promise<ActivityItem[]> {
       createdAt: row.created_at,
       actor: mapActor(row.commenter),
       post: { id: row.post!.id, imageUrl: row.post!.image_url },
+      commentId: row.id,
       content: row.content,
     }));
 

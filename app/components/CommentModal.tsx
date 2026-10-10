@@ -12,6 +12,8 @@ import {
 } from "@/lib/comments";
 import { getProfileById } from "@/lib/profiles";
 
+const HIGHLIGHT_DURATION_MS = 2000;
+
 function initials(name: string) {
   return name.charAt(0).toUpperCase();
 }
@@ -50,15 +52,18 @@ export default function CommentModal({
   viewerUsername,
   onClose,
   onCountChange,
+  highlightCommentId,
 }: {
   postId: number;
   viewerId: string | null;
   viewerUsername: string | null;
   onClose: () => void;
   onCountChange: (count: number) => void;
+  highlightCommentId?: number;
 }) {
   const router = useRouter();
   const [comments, setComments] = useState<Comment[]>([]);
+  const [highlightedId, setHighlightedId] = useState<number | null>(null);
   const [viewerAvatarUrl, setViewerAvatarUrl] = useState<string | null>(null);
   const [viewerDisplayName, setViewerDisplayName] = useState<string | null>(
     null
@@ -108,6 +113,29 @@ export default function CommentModal({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postId, viewerId]);
+
+  useEffect(() => {
+    if (!highlightCommentId || loading) return;
+
+    const target = document.getElementById(`comment-${highlightCommentId}`);
+    if (!target) return;
+
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    // Deferred rather than called directly in the effect body — these are
+    // genuinely async (one fires after this task, one after the duration),
+    // not a synchronous cascading update.
+    const showTimer = setTimeout(() => setHighlightedId(highlightCommentId), 0);
+    const hideTimer = setTimeout(
+      () => setHighlightedId(null),
+      HIGHLIGHT_DURATION_MS
+    );
+
+    return () => {
+      clearTimeout(showTimer);
+      clearTimeout(hideTimer);
+    };
+  }, [highlightCommentId, loading, comments]);
 
   function handleReply(comment: Comment) {
     setReplyingTo({ id: comment.id, username: comment.username });
@@ -238,7 +266,15 @@ export default function CommentModal({
           ) : (
             <ul className="flex flex-col gap-4">
               {thread.map((comment) => (
-                <li key={comment.id} className="flex flex-col gap-3">
+                <li
+                  key={comment.id}
+                  id={`comment-${comment.id}`}
+                  className={`-m-2 flex flex-col gap-3 rounded-lg p-2 transition-colors duration-500 ${
+                    highlightedId === comment.id
+                      ? "bg-[var(--blush-tint)]"
+                      : ""
+                  }`}
+                >
                   <div className="flex items-start gap-3">
                     <CommentAvatar
                       avatarUrl={comment.avatarUrl}
@@ -281,7 +317,15 @@ export default function CommentModal({
                   {comment.replies.length > 0 && (
                     <ul className="flex flex-col gap-3 pl-11">
                       {comment.replies.map((reply) => (
-                        <li key={reply.id} className="flex items-start gap-3">
+                        <li
+                          key={reply.id}
+                          id={`comment-${reply.id}`}
+                          className={`-m-2 flex items-start gap-3 rounded-lg p-2 transition-colors duration-500 ${
+                            highlightedId === reply.id
+                              ? "bg-[var(--blush-tint)]"
+                              : ""
+                          }`}
+                        >
                           <CommentAvatar
                             avatarUrl={reply.avatarUrl}
                             name={reply.displayName || reply.username}
